@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = ["app", "core"]
+
+[workspace.dependencies]
+pss-core = { path = "core" }
+num_enum = "0.7.5"
+strum = "0.27.2"
+strum_macros = "0.27.2"
