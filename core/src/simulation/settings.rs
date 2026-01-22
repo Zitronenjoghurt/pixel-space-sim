@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct SimulationSettings {
     pub tps: u16,
     pub fps: u16,

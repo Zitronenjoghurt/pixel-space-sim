@@ -6,6 +6,7 @@ use pss_core::math::rect::Rect;
 use pss_core::math::size::Size;
 use pss_core::simulation::command::SimCommand;
 use pss_core::simulation::settings::SimulationSettings;
+use pss_core::simulation::snapshot::SimSnapshot;
 use pss_core::simulation::source::local::LocalSim;
 use pss_core::simulation::source::SimSource;
 use std::sync::Arc;
@@ -18,6 +19,7 @@ pub struct App {
     gfx: Gfx,
     ui: Ui,
     simulation: Option<Box<dyn SimSource>>,
+    sim_snapshot: Option<SimSnapshot>,
     cursor_pos: Point<f32>,
     drag_start: Option<Point<f32>>,
     last_visible_rect: Rect<f32>,
@@ -33,6 +35,7 @@ impl App {
             gfx: Gfx::new(window),
             ui: Ui::default(),
             simulation: Some(Box::new(sim)),
+            sim_snapshot: None,
             cursor_pos: Point::default(),
             drag_start: None,
             last_visible_rect: Rect::default(),
@@ -115,6 +118,7 @@ impl App {
         self.gfx.prepare_ui(|ctx| {
             let app_ctx = AppContext {
                 simulation: self.simulation.as_deref(),
+                sim_snapshot: self.sim_snapshot.as_ref(),
                 camera: &self.camera,
                 cursor_pos: self.cursor_pos,
                 screen_size,
@@ -125,9 +129,11 @@ impl App {
 
         if let Some(sim) = &mut self.simulation {
             let dest = self.gfx.frame();
-            if let Some(size) = sim.read_frame(dest) {
-                self.gfx.set_buffer_size(size.width, size.height);
-            }
+            let frame = sim.read_frame();
+            frame.write_rgba(dest);
+            self.gfx
+                .set_buffer_size(frame.size().width, frame.size().height);
+            self.sim_snapshot = Some(frame.snapshot.clone());
         } else {
             self.gfx.frame().fill(0);
         }

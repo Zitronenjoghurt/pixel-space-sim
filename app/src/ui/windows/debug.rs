@@ -1,7 +1,7 @@
 use crate::icons;
 use crate::ui::windows::{ToggleableUiWindow, UiWindow};
 use crate::ui::AppContext;
-use egui::{Ui, WidgetText};
+use egui::{Grid, Ui, WidgetText};
 
 #[derive(Default)]
 pub struct DebugWindowState {
@@ -37,19 +37,57 @@ impl UiWindow for DebugWindow<'_> {
     }
 
     fn render_content(&mut self, ui: &mut Ui) {
-        let cursor_world = self
-            .app_ctx
-            .camera
-            .screen_to_world(self.app_ctx.cursor_pos, self.app_ctx.screen_size);
+        Grid::new("debug_grid")
+            .num_columns(2)
+            .striped(true)
+            .show(ui, |ui| {
+                if let Some(snapshot) = self.app_ctx.sim_snapshot {
+                    ui.label("Single Frame Time");
+                    ui.label(format!(
+                        "{:.2}ms",
+                        snapshot.avg_frame.as_secs_f32() * 1000.0
+                    ));
+                    ui.end_row();
 
-        ui.label(format!("Camera: {}", self.app_ctx.camera.center));
-        ui.label(format!("Zoom: {:.2}x", self.app_ctx.camera.zoom));
-        ui.label(format!("Cursor (Screen): {}", self.app_ctx.cursor_pos));
-        ui.label(format!("Cursor (World): {cursor_world}",));
-        ui.label(format!(
-            "Buffer: {}x{}",
-            self.app_ctx.buffer_size.width, self.app_ctx.buffer_size.height
-        ));
+                    ui.label("Frame Time per Second");
+                    ui.label(format!(
+                        "{:.2}ms",
+                        snapshot.frame_time_per_second().as_secs_f32() * 1000.0
+                    ));
+                    ui.end_row();
+
+                    ui.label("Tick Time");
+                    ui.label(format!("{:.2}ms", snapshot.avg_tick.as_secs_f32() * 1000.0));
+                    ui.end_row();
+                }
+
+                ui.label("Camera Center");
+                ui.label(format!("{}", self.app_ctx.camera.center));
+                ui.end_row();
+
+                ui.label("Camera Zoom");
+                ui.label(format!("{:.2}x", self.app_ctx.camera.zoom));
+                ui.end_row();
+
+                ui.label("Cursor (Screen)");
+                ui.label(format!("{}", self.app_ctx.cursor_pos));
+                ui.end_row();
+
+                let cursor_world = self
+                    .app_ctx
+                    .camera
+                    .screen_to_world(self.app_ctx.cursor_pos, self.app_ctx.screen_size);
+                ui.label("Cursor (World)");
+                ui.label(format!("{cursor_world}"));
+                ui.end_row();
+
+                ui.label("Buffer Size");
+                ui.label(format!(
+                    "{}x{}",
+                    self.app_ctx.buffer_size.width, self.app_ctx.buffer_size.height
+                ));
+                ui.end_row();
+            });
     }
 }
 

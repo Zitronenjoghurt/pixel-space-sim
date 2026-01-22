@@ -3,13 +3,14 @@ use crate::math::rect::Rect;
 use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 use crate::simulation::command::SimCommand;
-use crate::simulation::frame_buffer::FrameBuffer;
+use crate::simulation::frame::SimFrame;
 use std::collections::VecDeque;
 
 pub mod command;
 pub mod event;
-mod frame_buffer;
+mod frame;
 pub mod settings;
+pub mod snapshot;
 pub mod source;
 
 pub struct Simulation {
@@ -42,16 +43,23 @@ impl Simulation {
         self.ticks = self.ticks.wrapping_add(1);
     }
 
-    pub fn draw(&self, buffer: &mut FrameBuffer) {
-        buffer.resize(self.screen_size);
-        buffer.set_visible_rect(self.visible_rect);
-        buffer.clear(RGBA::rgb(30, 20, 30));
+    pub fn update_frame(&self, frame: &mut SimFrame) {
+        frame.resize(self.screen_size);
+        frame.set_visible_rect(self.visible_rect);
+        frame.clear();
 
-        buffer.fill_cell(Point::new(0.0, 0.0), RGBA::red());
+        frame.fill_cells([
+            (Point::new(0.0, 0.0), RGBA::red()),
+            (Point::new(1.0, 0.0), RGBA::blue()),
+            (Point::new(-1.0, -1.0), RGBA::yellow()),
+            (Point::new(0.0, 1.0), RGBA::green()),
+        ]);
 
-        buffer.fill_cell(Point::new(1.0, 0.0), RGBA::blue());
-        buffer.fill_cell(Point::new(0.0, 1.0), RGBA::green());
-        buffer.fill_cell(Point::new(-1.0, -1.0), RGBA::yellow());
+        self.update_snapshot(&mut frame.snapshot);
+    }
+
+    fn update_snapshot(&self, snapshot: &mut snapshot::SimSnapshot) {
+        snapshot.settings = self.settings.clone();
     }
 
     pub fn handle_command(&mut self, command: SimCommand) {

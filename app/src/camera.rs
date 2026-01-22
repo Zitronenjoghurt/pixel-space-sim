@@ -38,7 +38,7 @@ impl Camera {
 
     pub fn zoom_at(&mut self, screen_pos: Point<f32>, factor: f32, screen: Size<u32>) {
         let world_before = self.screen_to_world(screen_pos, screen);
-        self.zoom = (self.zoom * factor).clamp(0.5, 1000.0);
+        self.zoom = (self.zoom * factor).clamp(0.5, 10000.0);
         let world_after = self.screen_to_world(screen_pos, screen);
         self.center = self.center + (world_before - world_after);
     }

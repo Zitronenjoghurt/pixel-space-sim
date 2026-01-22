@@ -1,7 +1,7 @@
-use crate::math::size::Size;
+use crate::math::ema::EMA;
 use crate::simulation::command::SimCommand;
 use crate::simulation::event::SimEvent;
-use crate::simulation::frame_buffer::FrameBuffer;
+use crate::simulation::frame::SimFrame;
 use crate::simulation::settings::SimulationSettings;
 use crate::simulation::source::local::context::LocalSimContext;
 use crate::simulation::source::SimSource;
@@ -14,7 +14,7 @@ mod context;
 pub struct LocalSim {
     command_tx: mpsc::Sender<SimCommand>,
     event_rx: mpsc::Receiver<SimEvent>,
-    frame_reader: triple_buffer::Output<FrameBuffer>,
+    frame_reader: triple_buffer::Output<SimFrame>,
     _thread: std::thread::JoinHandle<()>,
 }
 
@@ -22,7 +22,7 @@ impl LocalSim {
     pub fn spawn(settings: SimulationSettings) -> Self {
         let (command_tx, command_rx) = mpsc::channel();
         let (event_tx, event_rx) = mpsc::channel();
-        let (frame_writer, frame_reader) = TripleBuffer::new(&FrameBuffer::default()).split();
+        let (frame_writer, frame_reader) = TripleBuffer::new(&SimFrame::default()).split();
 
         let thread = std::thread::spawn(move || {
             let context = LocalSimContext {
@@ -30,6 +30,8 @@ impl LocalSim {
                 command_rx,
                 event_tx,
                 frame_writer,
+                avg_frame_secs: EMA::default(),
+                avg_tick_secs: EMA::default(),
             };
             context.run();
         });
@@ -56,12 +58,8 @@ impl SimSource for LocalSim {
         self.event_rx.try_recv().ok()
     }
 
-    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u32>> {
-        let frame = self.frame_reader.read();
-        let src = frame.pixels();
-        let len = src.len().min(dest.len());
-        dest[..len].copy_from_slice(&src[..len]);
-        Some(frame.size())
+    fn read_frame(&mut self) -> &SimFrame {
+        self.frame_reader.read()
     }
 }
 

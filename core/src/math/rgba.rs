@@ -75,3 +75,15 @@ impl AsRef<[u8]> for RGBA {
         &self.0
     }
 }
+
+impl From<u32> for RGBA {
+    fn from(value: u32) -> Self {
+        Self(value.to_ne_bytes())
+    }
+}
+
+impl From<RGBA> for u32 {
+    fn from(value: RGBA) -> Self {
+        u32::from_ne_bytes(value.0)
+    }
+}
