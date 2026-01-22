@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use crate::gfx::Gfx;
+use crate::ui::{AppContext, Ui};
 use pss_core::math::screen_coords::ScreenCoords;
 use std::sync::Arc;
 use winit::event::{ElementState, Event, MouseButton, MouseScrollDelta, WindowEvent};
@@ -9,6 +10,7 @@ use winit::window::Window;
 pub struct App {
     camera: Camera,
     gfx: Gfx,
+    ui: Ui,
     cursor_pos: ScreenCoords,
     drag_start: Option<ScreenCoords>,
 }
@@ -18,6 +20,7 @@ impl App {
         Self {
             camera: Camera::new(),
             gfx: Gfx::new(window),
+            ui: Ui::default(),
             cursor_pos: ScreenCoords::default(),
             drag_start: None,
         }
@@ -71,6 +74,9 @@ impl App {
                             .zoom_at(self.cursor_pos, factor, self.screen_size());
                         self.sync_buffer_size();
                     }
+                    WindowEvent::KeyboardInput { event, .. } if !egui_consumed => {
+                        self.ui.on_keyboard_input(&event);
+                    }
                     _ => {}
                 }
             }
@@ -91,39 +97,24 @@ impl App {
 
     fn render(&mut self) {
         self.sync_buffer_size();
+        let buffer_size = self.buffer_size();
 
         let screen_size = self.screen_size();
-        let buffer_size = self.buffer_size();
+        self.gfx.prepare_ui(|ctx| {
+            let app_ctx = AppContext {
+                camera: &self.camera,
+                cursor_pos: self.cursor_pos,
+                screen_size,
+                buffer_size,
+            };
+            self.ui.draw(ctx, &app_ctx);
+        });
 
         {
             let frame = self.gfx.frame();
             frame.fill(0);
             Self::draw_world(frame, buffer_size, &self.camera);
         }
-
-        let camera = &self.camera;
-        let cursor_world = camera.screen_to_world(self.cursor_pos, screen_size);
-
-        self.gfx.prepare_ui(|ctx| {
-            egui::Window::new("Debug").show(ctx, |ui| {
-                ui.label(format!(
-                    "Camera: ({:.1}, {:.1})",
-                    camera.pos.x(),
-                    camera.pos.y()
-                ));
-                ui.label(format!("Zoom: {:.2}x", camera.zoom));
-                ui.label(format!(
-                    "Cursor: ({:.1}, {:.1})",
-                    cursor_world.x(),
-                    cursor_world.y()
-                ));
-                ui.label(format!(
-                    "Buffer: {}x{}",
-                    buffer_size.width(),
-                    buffer_size.height()
-                ));
-            });
-        });
 
         self.gfx.render();
     }

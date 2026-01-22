@@ -1,3 +1,4 @@
+use egui::FontDefinitions;
 use egui_wgpu::{wgpu, ScreenDescriptor};
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::Arc;
@@ -24,6 +25,24 @@ impl Gfx {
         let pixels = Pixels::new(size.width, size.height, surface).unwrap();
 
         let egui_ctx = egui::Context::default();
+
+        egui_ctx.set_visuals(egui::Visuals {
+            window_fill: egui::Color32::from_rgba_unmultiplied(30, 30, 30, 200),
+            ..egui::Visuals::dark()
+        });
+
+        egui_ctx.set_pixels_per_point(1.5);
+
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "phosphor".into(),
+            egui::FontData::from_static(egui_phosphor::Variant::Regular.font_bytes()),
+        );
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+            font_keys.insert(1, "phosphor".into());
+        }
+        egui_ctx.set_fonts(fonts);
+
         let max_tex = pixels.device().limits().max_texture_dimension_2d as usize;
 
         let egui_state = egui_winit::State::new(
@@ -45,7 +64,7 @@ impl Gfx {
             egui_renderer,
             screen: ScreenDescriptor {
                 size_in_pixels: [size.width, size.height],
-                pixels_per_point: 1.0,
+                pixels_per_point: 1.5,
             },
             textures: Default::default(),
             paint_jobs: Vec::new(),
@@ -130,14 +149,22 @@ impl Gfx {
     pub fn frame(&mut self) -> &mut [u8] {
         self.pixels.frame_mut()
     }
+
     pub fn request_redraw(&self) {
         self.window.request_redraw();
     }
+
     pub fn window(&self) -> &Window {
         &self.window
     }
+
     pub fn egui_ctx(&self) -> &egui::Context {
         &self.egui_ctx
+    }
+
+    pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
+        self.screen.pixels_per_point = pixels_per_point;
+        self.egui_ctx.set_pixels_per_point(pixels_per_point);
     }
 
     pub fn on_window_event(&mut self, event: &winit::event::WindowEvent) -> bool {

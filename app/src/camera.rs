@@ -9,7 +9,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    const MIN_BUFFER_DIM: u32 = 16;
+    const MIN_BUFFER_DIM: u32 = 32;
 
     pub fn new() -> Self {
         Self {
@@ -67,7 +67,7 @@ impl Camera {
     pub fn zoom_at(&mut self, sxy: ScreenCoords, factor: f32, screen_size: ScreenCoords) {
         let wxy = self.screen_to_world(sxy, screen_size);
         self.zoom *= factor;
-        self.zoom = self.zoom.clamp(1.0, 200.0); // Min 1.0: no sub-pixel rendering
+        self.zoom = self.zoom.clamp(1.0, 100.0); // Min 1.0: no sub-pixel rendering
         let new_wxy = self.screen_to_world(sxy, screen_size);
         *self.pos.x_mut() += wxy.x() - new_wxy.x();
         *self.pos.y_mut() += wxy.y() - new_wxy.y();

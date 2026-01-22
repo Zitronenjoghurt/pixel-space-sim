@@ -5,6 +5,9 @@ use winit::window::WindowBuilder;
 mod app;
 mod camera;
 mod gfx;
+mod ui;
+
+pub use egui_phosphor::regular as icons;
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
