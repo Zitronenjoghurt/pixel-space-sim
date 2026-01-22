@@ -34,7 +34,7 @@ impl UiWindow for MainWindow<'_> {
     }
 
     fn title() -> impl Into<WidgetText> {
-        "Ant Box"
+        "Main Window"
     }
 
     fn is_open(&self) -> bool {
@@ -47,7 +47,7 @@ impl UiWindow for MainWindow<'_> {
 
     fn render_content(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            DebugWindow::new(&mut self.state.debug, &self.app_ctx)
+            DebugWindow::new(&mut self.state.debug, self.app_ctx)
                 .toggle_button(ui)
                 .show(ui.ctx());
         });

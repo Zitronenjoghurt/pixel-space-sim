@@ -1,17 +1,21 @@
 use std::time::Duration;
 
 pub struct SimulationSettings {
-    pub tps: u8,
+    pub tps: u16,
+    pub fps: u16,
 }
 
 impl Default for SimulationSettings {
     fn default() -> Self {
-        Self { tps: 60 }
+        Self { tps: 60, fps: 360 }
     }
 }
 
 impl SimulationSettings {
-    pub fn duration_per_tick(&self) -> Duration {
-        Duration::from_secs_f32(1.0 / self.tps as f32)
+    pub fn interval_tps(&self) -> Duration {
+        Duration::from_secs_f64(1.0 / self.tps as f64)
+    }
+    pub fn interval_fps(&self) -> Duration {
+        Duration::from_secs_f64(1.0 / self.fps as f64)
     }
 }

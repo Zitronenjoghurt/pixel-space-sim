@@ -14,8 +14,11 @@ pub struct LocalSimContext {
 
 impl LocalSimContext {
     pub fn run(mut self) {
+        let mut last_tick = Instant::now();
+        let mut last_render = Instant::now();
+
         loop {
-            let frame_start = Instant::now();
+            let now = Instant::now();
 
             while let Ok(cmd) = self.command_rx.try_recv() {
                 self.simulation.handle_command(cmd);
@@ -25,12 +28,24 @@ impl LocalSimContext {
                 break;
             }
 
-            self.simulation.tick(false);
-            self.render_frame();
+            let tick_interval = self.simulation.settings.interval_tps();
+            while now.duration_since(last_tick) >= tick_interval {
+                self.simulation.tick(false);
+                last_tick += tick_interval;
+            }
 
-            let target = self.simulation.settings.duration_per_tick();
-            if let Some(remaining) = target.checked_sub(frame_start.elapsed()) {
-                std::thread::sleep(remaining);
+            let render_interval = self.simulation.settings.interval_fps();
+            if now.duration_since(last_render) >= render_interval {
+                self.render_frame();
+                last_render = now;
+            }
+
+            let next_tick = last_tick + tick_interval;
+            let next_render = last_render + render_interval;
+            let next_event = next_tick.min(next_render);
+
+            if let Some(wait) = next_event.checked_duration_since(Instant::now()) {
+                spin_sleep::sleep(wait);
             }
         }
     }

@@ -103,6 +103,10 @@ impl FrameBuffer {
         let x1 = (max_screen.x.ceil() as u32).min(self.size.width);
         let y1 = (max_screen.y.ceil() as u32).min(self.size.height);
 
+        if x1 <= x0 {
+            return;
+        }
+
         for y in y0..y1 {
             for x in x0..x1 {
                 self.set_screen_pixel(x, y, color);
