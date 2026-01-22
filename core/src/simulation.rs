@@ -1,5 +1,6 @@
 use crate::math::point::Point;
 use crate::math::rect::Rect;
+use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 use crate::simulation::command::SimCommand;
 use crate::simulation::frame_buffer::FrameBuffer;
@@ -44,13 +45,13 @@ impl Simulation {
     pub fn draw(&self, buffer: &mut FrameBuffer) {
         buffer.resize(self.screen_size);
         buffer.set_visible_rect(self.visible_rect);
-        buffer.clear([20, 20, 30, 255]);
+        buffer.clear(RGBA::rgb(30, 20, 30));
 
-        buffer.fill_cell(Point::new(0.0, 0.0), [255, 0, 0, 255]);
+        buffer.fill_cell(Point::new(0.0, 0.0), RGBA::red());
 
-        buffer.fill_cell(Point::new(1.0, 0.0), [0, 255, 0, 255]);
-        buffer.fill_cell(Point::new(0.0, 1.0), [0, 0, 255, 255]);
-        buffer.fill_cell(Point::new(-1.0, -1.0), [255, 255, 0, 255]);
+        buffer.fill_cell(Point::new(1.0, 0.0), RGBA::blue());
+        buffer.fill_cell(Point::new(0.0, 1.0), RGBA::green());
+        buffer.fill_cell(Point::new(-1.0, -1.0), RGBA::yellow());
     }
 
     pub fn handle_command(&mut self, command: SimCommand) {

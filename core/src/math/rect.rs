@@ -36,6 +36,7 @@ where
         Size::new(self.width(), self.height())
     }
 
+    #[inline(always)]
     pub fn center(&self) -> Point<N> {
         let two = N::from(2u8);
         Point::new(
@@ -54,6 +55,7 @@ impl Rect<f32> {
         }
     }
 
+    #[inline(always)]
     pub fn contains(&self, p: Point<f32>) -> bool {
         p.x >= self.min.x && p.x < self.max.x && p.y >= self.min.y && p.y < self.max.y
     }

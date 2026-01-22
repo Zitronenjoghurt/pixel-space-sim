@@ -1,5 +1,6 @@
 use crate::math::point::Point;
 use crate::math::rect::Rect;
+use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 
 #[derive(Clone)]
@@ -54,49 +55,27 @@ impl FrameBuffer {
         }
     }
 
-    pub fn world_to_screen(&self, world_pos: Point<f32>) -> Option<Point<u32>> {
-        if !self.visible_rect.contains(world_pos) {
-            return None;
-        }
-        let p = self.world_to_screen_f32(world_pos);
-        Some(Point::new(p.x as u32, p.y as u32))
-    }
-
-    fn world_to_screen_f32(&self, world_pos: Point<f32>) -> Point<f32> {
+    pub fn world_to_screen(&self, world_pos: Point<f32>) -> Point<f32> {
         let relative = world_pos - self.visible_rect.min;
         let zoom = self.zoom();
         Point::new(relative.x * zoom, relative.y * zoom)
     }
 
-    pub fn set_pixel(&mut self, world_pos: Point<f32>, color: [u8; 4]) {
-        if let Some(sp) = self.world_to_screen(world_pos) {
-            self.set_screen_pixel(sp.x, sp.y, color);
-        }
-    }
-
-    pub fn set_screen_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {
+    pub fn set_screen_pixel(&mut self, x: u32, y: u32, color: RGBA) {
         if x < self.size.width && y < self.size.height {
             let idx = ((y * self.size.width + x) * 4) as usize;
             self.data[idx..idx + 4].copy_from_slice(&color);
         }
     }
 
-    pub fn fill_cell(&mut self, world_pos: Point<f32>, color: [u8; 4]) {
-        let cell = Rect::new(
-            Point::new(world_pos.x.floor(), world_pos.y.floor()),
-            Point::new(world_pos.x.floor() + 1.0, world_pos.y.floor() + 1.0),
-        );
-        self.fill_world_rect(cell, color);
-    }
-
-    pub fn fill_world_rect(&mut self, world_rect: Rect<f32>, color: [u8; 4]) {
+    pub fn fill_world_rect(&mut self, world_rect: Rect<f32>, color: RGBA) {
         let clamped = match world_rect.intersect(&self.visible_rect) {
             Some(r) => r,
             None => return,
         };
 
-        let min_screen = self.world_to_screen_f32(clamped.min);
-        let max_screen = self.world_to_screen_f32(clamped.max);
+        let min_screen = self.world_to_screen(clamped.min);
+        let max_screen = self.world_to_screen(clamped.max);
 
         let x0 = (min_screen.x.floor() as u32).min(self.size.width);
         let y0 = (min_screen.y.floor() as u32).min(self.size.height);
@@ -114,7 +93,15 @@ impl FrameBuffer {
         }
     }
 
-    pub fn clear(&mut self, color: [u8; 4]) {
+    pub fn fill_cell(&mut self, world_pos: Point<f32>, color: RGBA) {
+        let cell = Rect::new(
+            Point::new(world_pos.x.floor(), world_pos.y.floor()),
+            Point::new(world_pos.x.floor() + 1.0, world_pos.y.floor() + 1.0),
+        );
+        self.fill_world_rect(cell, color);
+    }
+
+    pub fn clear(&mut self, color: RGBA) {
         for pixel in self.data.chunks_exact_mut(4) {
             pixel.copy_from_slice(&color);
         }
