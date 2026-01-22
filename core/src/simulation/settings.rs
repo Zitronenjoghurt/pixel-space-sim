@@ -8,7 +8,7 @@ pub struct SimulationSettings {
 
 impl Default for SimulationSettings {
     fn default() -> Self {
-        Self { tps: 60, fps: 360 }
+        Self { tps: 60, fps: 180 }
     }
 }
 

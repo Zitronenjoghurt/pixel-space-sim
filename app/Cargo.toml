@@ -11,6 +11,7 @@ egui-wgpu = "0.26"
 egui-winit = "0.26"
 strum = { workspace = true }
 strum_macros = { workspace = true }
+wgpu = { version = "0.19", default-features = false, features = ["dx12", "metal"] }
 winit = "0.29"
 bytemuck = "1.24.0"
 pollster = "0.4.0"
