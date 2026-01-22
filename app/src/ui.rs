@@ -2,6 +2,7 @@ use crate::camera::Camera;
 use crate::ui::windows::main::{MainWindow, MainWindowState};
 use crate::ui::windows::UiWindow;
 use pss_core::math::screen_coords::ScreenCoords;
+use pss_core::simulation::source::SimSource;
 use winit::event::{ElementState, KeyEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 
@@ -9,6 +10,7 @@ mod widgets;
 mod windows;
 
 pub struct AppContext<'a> {
+    pub simulation: Option<&'a Box<dyn SimSource>>,
     pub camera: &'a Camera,
     pub cursor_pos: ScreenCoords,
     pub buffer_size: ScreenCoords,

@@ -2,6 +2,10 @@ use crate::camera::Camera;
 use crate::gfx::Gfx;
 use crate::ui::{AppContext, Ui};
 use pss_core::math::screen_coords::ScreenCoords;
+use pss_core::simulation::command::SimCommand;
+use pss_core::simulation::settings::SimulationSettings;
+use pss_core::simulation::source::local::LocalSim;
+use pss_core::simulation::source::SimSource;
 use std::sync::Arc;
 use winit::event::{ElementState, Event, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoopWindowTarget;
@@ -11,16 +15,21 @@ pub struct App {
     camera: Camera,
     gfx: Gfx,
     ui: Ui,
+    simulation: Option<Box<dyn SimSource>>,
     cursor_pos: ScreenCoords,
     drag_start: Option<ScreenCoords>,
 }
 
 impl App {
     pub fn new(window: Arc<Window>) -> Self {
+        let settings = SimulationSettings::default();
+        let sim = LocalSim::spawn(settings);
+
         Self {
             camera: Camera::new(),
             gfx: Gfx::new(window),
             ui: Ui::default(),
+            simulation: Some(Box::new(sim)),
             cursor_pos: ScreenCoords::default(),
             drag_start: None,
         }
@@ -96,12 +105,17 @@ impl App {
     fn update(&mut self) {}
 
     fn render(&mut self) {
-        self.sync_buffer_size();
+        let screen_size = self.screen_size();
         let buffer_size = self.buffer_size();
 
-        let screen_size = self.screen_size();
+        if let Some(sim) = &self.simulation {
+            let rect = self.camera.visible_rect(screen_size);
+            sim.send_command(SimCommand::SetVisibleRect(rect));
+        }
+
         self.gfx.prepare_ui(|ctx| {
             let app_ctx = AppContext {
+                simulation: self.simulation.as_ref(),
                 camera: &self.camera,
                 cursor_pos: self.cursor_pos,
                 screen_size,
@@ -110,10 +124,16 @@ impl App {
             self.ui.draw(ctx, &app_ctx);
         });
 
-        {
-            let frame = self.gfx.frame();
-            frame.fill(0);
-            Self::draw_world(frame, buffer_size, &self.camera);
+        if let Some(sim) = &mut self.simulation {
+            let max_buf = self.camera.buffer_size(screen_size);
+            self.gfx.set_buffer_size(max_buf.width(), max_buf.height());
+            let dest = self.gfx.frame();
+
+            if let Some((w, h)) = sim.read_frame(dest) {
+                self.gfx.set_buffer_size(w as u32, h as u32);
+            }
+        } else {
+            self.gfx.frame().fill(0);
         }
 
         self.gfx.render();
