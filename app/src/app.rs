@@ -1,6 +1,8 @@
 use crate::camera::Camera;
 use crate::gfx::Gfx;
 use crate::ui::{AppContext, Ui};
+use pss_core::math::point::Point;
+use pss_core::math::rect::Rect;
 use pss_core::math::screen_coords::ScreenCoords;
 use pss_core::simulation::command::SimCommand;
 use pss_core::simulation::settings::SimulationSettings;
@@ -16,8 +18,9 @@ pub struct App {
     gfx: Gfx,
     ui: Ui,
     simulation: Option<Box<dyn SimSource>>,
-    cursor_pos: ScreenCoords,
-    drag_start: Option<ScreenCoords>,
+    cursor_pos: Point<f32>,
+    drag_start: Option<Point<f32>>,
+    last_visible_rect: Rect<f32>,
 }
 
 impl App {
@@ -30,8 +33,9 @@ impl App {
             gfx: Gfx::new(window),
             ui: Ui::default(),
             simulation: Some(Box::new(sim)),
-            cursor_pos: ScreenCoords::default(),
+            cursor_pos: Point::default(),
             drag_start: None,
+            last_visible_rect: Rect::default(),
         }
     }
 
@@ -48,11 +52,11 @@ impl App {
                         self.sync_buffer_size();
                     }
                     WindowEvent::CursorMoved { position, .. } => {
-                        let new_pos = ScreenCoords::new(position.x as u32, position.y as u32);
+                        let new_pos = Point::new(position.x as f32, position.y as f32);
 
                         if let Some(start) = self.drag_start {
-                            let dx = start.x() as f32 - new_pos.x() as f32;
-                            let dy = start.y() as f32 - new_pos.y() as f32;
+                            let dx = start.x - new_pos.x;
+                            let dy = start.y - new_pos.y;
                             self.camera.pan(dx, dy);
                             self.drag_start = Some(new_pos);
                         }
@@ -76,12 +80,11 @@ impl App {
                     WindowEvent::MouseWheel { delta, .. } if !egui_consumed => {
                         let scroll = match delta {
                             MouseScrollDelta::LineDelta(_, y) => y,
-                            MouseScrollDelta::PixelDelta(pos) => pos.y as f32 / 100.0,
+                            MouseScrollDelta::PixelDelta(pos) => pos.y as f32 / 120.0,
                         };
-                        let factor = 1.0 + scroll * 0.1;
+                        let factor = 1.1_f32.powf(scroll);
                         self.camera
                             .zoom_at(self.cursor_pos, factor, self.screen_size());
-                        self.sync_buffer_size();
                     }
                     WindowEvent::KeyboardInput { event, .. } if !egui_consumed => {
                         self.ui.on_keyboard_input(&event);
@@ -110,7 +113,10 @@ impl App {
 
         if let Some(sim) = &self.simulation {
             let rect = self.camera.visible_rect(screen_size);
-            sim.send_command(SimCommand::SetVisibleRect(rect));
+            if rect != self.last_visible_rect {
+                self.last_visible_rect = rect;
+                sim.send_command(SimCommand::SetVisibleRect(rect));
+            }
         }
 
         self.gfx.prepare_ui(|ctx| {
@@ -137,20 +143,6 @@ impl App {
         }
 
         self.gfx.render();
-    }
-
-    fn draw_world(frame: &mut [u8], buffer_size: ScreenCoords, camera: &Camera) {
-        if let Some(origin_buffer) = camera.world_to_buffer(
-            pss_core::math::world_coords::WorldCoords::new(0.0, 0.0),
-            buffer_size,
-        ) {
-            Self::draw_pixel(frame, origin_buffer, buffer_size, [255, 0, 0, 255]);
-        }
-    }
-
-    fn draw_pixel(frame: &mut [u8], pos: ScreenCoords, size: ScreenCoords, color: [u8; 4]) {
-        let idx = ((pos.y() * size.width() + pos.x()) * 4) as usize;
-        frame[idx..idx + 4].copy_from_slice(&color);
     }
 
     fn on_click(&mut self) {

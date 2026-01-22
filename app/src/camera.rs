@@ -34,28 +34,9 @@ impl Camera {
         Rect::new(self.pos.point() - half, self.pos.point() + half)
     }
 
-    pub fn world_to_buffer(
-        &self,
-        wxy: WorldCoords,
-        buffer_size: ScreenCoords,
-    ) -> Option<ScreenCoords> {
-        let bx = wxy.x() - self.pos.x() + buffer_size.width() as f32 / 2.0;
-        let by = wxy.y() - self.pos.y() + buffer_size.height() as f32 / 2.0;
-
-        if bx >= 0.0
-            && bx < buffer_size.width() as f32
-            && by >= 0.0
-            && by < buffer_size.height() as f32
-        {
-            Some(ScreenCoords::new(bx as u32, by as u32))
-        } else {
-            None
-        }
-    }
-
-    pub fn screen_to_world(&self, sxy: ScreenCoords, screen_size: ScreenCoords) -> WorldCoords {
-        let wx = (sxy.x() as f32 - screen_size.width() as f32 / 2.0) / self.zoom + self.pos.x();
-        let wy = (sxy.y() as f32 - screen_size.height() as f32 / 2.0) / self.zoom + self.pos.y();
+    pub fn screen_to_world(&self, sxy: Point<f32>, screen_size: ScreenCoords) -> WorldCoords {
+        let wx = (sxy.x - screen_size.width() as f32 / 2.0) / self.zoom + self.pos.x();
+        let wy = (sxy.y - screen_size.height() as f32 / 2.0) / self.zoom + self.pos.y();
         WorldCoords::new(wx, wy)
     }
 
@@ -64,10 +45,15 @@ impl Camera {
         *self.pos.y_mut() += dy / self.zoom;
     }
 
-    pub fn zoom_at(&mut self, sxy: ScreenCoords, factor: f32, screen_size: ScreenCoords) {
+    pub fn zoom_at(&mut self, sxy: Point<f32>, factor: f32, screen_size: ScreenCoords) {
         let wxy = self.screen_to_world(sxy, screen_size);
-        self.zoom *= factor;
-        self.zoom = self.zoom.clamp(1.0, 100.0); // Min 1.0: no sub-pixel rendering
+        let new_zoom = (self.zoom * factor).clamp(1.0, 100.0);
+
+        if new_zoom == self.zoom {
+            return;
+        }
+
+        self.zoom = new_zoom;
         let new_wxy = self.screen_to_world(sxy, screen_size);
         *self.pos.x_mut() += wxy.x() - new_wxy.x();
         *self.pos.y_mut() += wxy.y() - new_wxy.y();

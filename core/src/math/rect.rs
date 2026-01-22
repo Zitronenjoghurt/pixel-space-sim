@@ -1,7 +1,7 @@
 use crate::math::point::Point;
 use std::ops::Sub;
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct Rect<N> {
     pub min: Point<N>,
     pub max: Point<N>,
