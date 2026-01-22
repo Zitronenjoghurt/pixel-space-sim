@@ -1,3 +1,4 @@
+use crate::math::size::Size;
 use crate::simulation::command::SimCommand;
 use crate::simulation::event::SimEvent;
 use crate::simulation::frame_buffer::FrameBuffer;
@@ -55,12 +56,12 @@ impl SimSource for LocalSim {
         self.event_rx.try_recv().ok()
     }
 
-    fn read_frame(&mut self, dest: &mut [u8]) -> Option<(u16, u16)> {
+    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u16>> {
         let frame = self.frame_reader.read();
         let src = frame.pixels();
         let len = src.len().min(dest.len());
         dest[..len].copy_from_slice(&src[..len]);
-        Some((frame.width, frame.height))
+        Some(frame.size())
     }
 }
 

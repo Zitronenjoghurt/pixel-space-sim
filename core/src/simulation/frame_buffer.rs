@@ -1,28 +1,32 @@
+use crate::math::point::Point;
 use crate::math::rect::Rect;
+use crate::math::size::Size;
 
 #[derive(Clone)]
 pub struct FrameBuffer {
-    pub height: u16,
-    pub width: u16,
     pub visible_rect: Rect<f32>,
+    size: Size<u16>,
     data: Vec<u8>,
 }
 
 impl FrameBuffer {
     pub fn new(width: u16, height: u16) -> Self {
         Self {
-            width,
-            height,
+            size: Size::new(width, height),
             visible_rect: Rect::default(),
             data: vec![0u8; width as usize * height as usize * 4],
         }
     }
 
-    pub fn resize(&mut self, width: u16, height: u16) {
-        if self.width != width || self.height != height {
-            self.width = width;
-            self.height = height;
-            self.data.resize(width as usize * height as usize * 4, 0);
+    pub fn size(&self) -> Size<u16> {
+        self.size
+    }
+
+    pub fn resize(&mut self, size: Size<u16>) {
+        if self.size != size {
+            self.size = size;
+            self.data
+                .resize(size.width as usize * size.height as usize * 4, 0);
         }
     }
 
@@ -34,32 +38,27 @@ impl FrameBuffer {
         &mut self.data
     }
 
-    pub fn set_pixel(&mut self, wx: f32, wy: f32, color: [u8; 4]) {
-        if let Some((x, y)) = self.world_to_pixel(wx, wy) {
-            self.set_buffer_pixel(x, y, color);
+    pub fn set_pixel(&mut self, world_pos: Point<f32>, color: [u8; 4]) {
+        if let Some(px) = self.world_to_pixel(world_pos) {
+            self.set_buffer_pixel(px, color);
         }
     }
 
-    fn set_buffer_pixel(&mut self, x: u16, y: u16, color: [u8; 4]) {
-        if x < self.width && y < self.height {
-            let idx = (y as usize * self.width as usize + x as usize) * 4;
+    fn set_buffer_pixel(&mut self, pos: Point<u16>, color: [u8; 4]) {
+        if pos.x < self.size.width && pos.y < self.size.height {
+            let idx = (pos.y as usize * self.size.width as usize + pos.x as usize) * 4;
             self.data[idx..idx + 4].copy_from_slice(&color);
         }
     }
 
-    pub fn world_to_pixel(&self, wx: f32, wy: f32) -> Option<(u16, u16)> {
-        let rx = wx - self.visible_rect.min.x;
-        let ry = wy - self.visible_rect.min.y;
+    pub fn world_to_pixel(&self, world_pos: Point<f32>) -> Option<Point<u16>> {
+        let relative = world_pos - self.visible_rect.min;
 
-        if rx < 0.0
-            || ry < 0.0
-            || rx >= self.visible_rect.width()
-            || ry >= self.visible_rect.height()
-        {
+        if !self.visible_rect.contains(world_pos) {
             return None;
         }
 
-        Some((rx as u16, ry as u16))
+        Some(Point::new(relative.x as u16, relative.y as u16))
     }
 
     pub fn clear(&mut self, color: [u8; 4]) {

@@ -3,7 +3,7 @@ use crate::gfx::Gfx;
 use crate::ui::{AppContext, Ui};
 use pss_core::math::point::Point;
 use pss_core::math::rect::Rect;
-use pss_core::math::screen_coords::ScreenCoords;
+use pss_core::math::size::Size;
 use pss_core::simulation::command::SimCommand;
 use pss_core::simulation::settings::SimulationSettings;
 use pss_core::simulation::source::local::LocalSim;
@@ -55,9 +55,8 @@ impl App {
                         let new_pos = Point::new(position.x as f32, position.y as f32);
 
                         if let Some(start) = self.drag_start {
-                            let dx = start.x - new_pos.x;
-                            let dy = start.y - new_pos.y;
-                            self.camera.pan(dx, dy);
+                            let delta = start - new_pos;
+                            self.camera.pan(delta);
                             self.drag_start = Some(new_pos);
                         }
 
@@ -102,7 +101,7 @@ impl App {
 
     fn sync_buffer_size(&mut self) {
         let buffer = self.camera.buffer_size(self.screen_size());
-        self.gfx.set_buffer_size(buffer.width(), buffer.height());
+        self.gfx.set_buffer_size(buffer.width, buffer.height);
     }
 
     fn update(&mut self) {}
@@ -121,7 +120,7 @@ impl App {
 
         self.gfx.prepare_ui(|ctx| {
             let app_ctx = AppContext {
-                simulation: self.simulation.as_ref(),
+                simulation: self.simulation.as_deref(),
                 camera: &self.camera,
                 cursor_pos: self.cursor_pos,
                 screen_size,
@@ -132,11 +131,12 @@ impl App {
 
         if let Some(sim) = &mut self.simulation {
             let max_buf = self.camera.buffer_size(screen_size);
-            self.gfx.set_buffer_size(max_buf.width(), max_buf.height());
+            self.gfx.set_buffer_size(max_buf.width, max_buf.height);
             let dest = self.gfx.frame();
 
-            if let Some((w, h)) = sim.read_frame(dest) {
-                self.gfx.set_buffer_size(w as u32, h as u32);
+            if let Some(size) = sim.read_frame(dest) {
+                self.gfx
+                    .set_buffer_size(size.width as u32, size.height as u32);
             }
         } else {
             self.gfx.frame().fill(0);
@@ -149,16 +149,16 @@ impl App {
         let world_pos = self
             .camera
             .screen_to_world(self.cursor_pos, self.screen_size());
-        println!("Clicked at world: ({}, {})", world_pos.x(), world_pos.y());
+        println!("Clicked at world: ({}, {})", world_pos.x, world_pos.y);
     }
 
-    fn screen_size(&self) -> ScreenCoords {
-        let size = self.gfx.window().inner_size();
-        ScreenCoords::new(size.width, size.height)
+    fn screen_size(&self) -> Size<u32> {
+        let s = self.gfx.window().inner_size();
+        Size::new(s.width, s.height)
     }
 
-    fn buffer_size(&self) -> ScreenCoords {
+    fn buffer_size(&self) -> Size<u32> {
         let [w, h] = self.gfx.buffer_size();
-        ScreenCoords::new(w, h)
+        Size::new(w, h)
     }
 }

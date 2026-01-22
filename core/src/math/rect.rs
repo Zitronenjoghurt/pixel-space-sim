@@ -1,7 +1,8 @@
 use crate::math::point::Point;
-use std::ops::Sub;
+use crate::math::size::Size;
+use std::ops::{Add, Div, Sub};
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Rect<N> {
     pub min: Point<N>,
     pub max: Point<N>,
@@ -24,5 +25,36 @@ where
 
     pub fn height(&self) -> N {
         self.max.y - self.min.y
+    }
+}
+
+impl<N: Copy + Add<Output = N> + Sub<Output = N> + Div<Output = N>> Rect<N>
+where
+    N: From<u8>,
+{
+    pub fn size(&self) -> Size<N> {
+        Size::new(self.width(), self.height())
+    }
+
+    pub fn center(&self) -> Point<N> {
+        let two = N::from(2u8);
+        Point::new(
+            (self.min.x + self.max.x) / two,
+            (self.min.y + self.max.y) / two,
+        )
+    }
+}
+
+impl Rect<f32> {
+    pub fn from_center_size(center: Point<f32>, size: Size<f32>) -> Self {
+        let half = Point::new(size.width / 2.0, size.height / 2.0);
+        Self {
+            min: center - half,
+            max: center + half,
+        }
+    }
+
+    pub fn contains(&self, p: Point<f32>) -> bool {
+        p.x >= self.min.x && p.x < self.max.x && p.y >= self.min.y && p.y < self.max.y
     }
 }

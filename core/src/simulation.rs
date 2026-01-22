@@ -1,4 +1,6 @@
+use crate::math::point::Point;
 use crate::math::rect::Rect;
+use crate::math::size::Size;
 use crate::simulation::command::SimCommand;
 use crate::simulation::frame_buffer::FrameBuffer;
 use std::collections::VecDeque;
@@ -39,13 +41,15 @@ impl Simulation {
     }
 
     pub fn draw(&self, buffer: &mut FrameBuffer) {
-        let width = self.visible_rect.width().max(1.0) as u16;
-        let height = self.visible_rect.height().max(1.0) as u16;
-        buffer.resize(width, height);
+        let size = Size::new(
+            self.visible_rect.width().max(1.0) as u16,
+            self.visible_rect.height().max(1.0) as u16,
+        );
+        buffer.resize(size);
         buffer.visible_rect = self.visible_rect;
         buffer.clear([20, 20, 20, 255]);
 
-        buffer.set_pixel(0.0, 0.0, [255, 0, 0, 255]);
+        buffer.set_pixel(Point::new(0.0, 0.0), [255, 0, 0, 255]);
     }
 
     pub fn handle_command(&mut self, command: SimCommand) {

@@ -42,21 +42,13 @@ impl UiWindow for DebugWindow<'_> {
             .camera
             .screen_to_world(self.app_ctx.cursor_pos, self.app_ctx.screen_size);
 
-        ui.label(format!(
-            "Camera: ({:.1}, {:.1})",
-            self.app_ctx.camera.pos.x(),
-            self.app_ctx.camera.pos.y()
-        ));
+        ui.label(format!("Camera: {}", self.app_ctx.camera.center));
         ui.label(format!("Zoom: {:.2}x", self.app_ctx.camera.zoom));
-        ui.label(format!(
-            "Cursor: ({:.1}, {:.1})",
-            cursor_world.x(),
-            cursor_world.y()
-        ));
+        ui.label(format!("Cursor (Screen): {}", self.app_ctx.cursor_pos));
+        ui.label(format!("Cursor (World): {cursor_world}",));
         ui.label(format!(
             "Buffer: {}x{}",
-            self.app_ctx.buffer_size.width(),
-            self.app_ctx.buffer_size.height()
+            self.app_ctx.buffer_size.width, self.app_ctx.buffer_size.height
         ));
     }
 }
