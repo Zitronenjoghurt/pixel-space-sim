@@ -9,6 +9,8 @@ pub struct Camera {
 }
 
 impl Camera {
+    const MIN_BUFFER_DIM: u32 = 16;
+
     pub fn new() -> Self {
         Self {
             pos: WorldCoords::default(),
@@ -16,19 +18,39 @@ impl Camera {
         }
     }
 
-    pub fn visible_rect(&self, size: ScreenCoords) -> Rect<f32> {
-        let half_w = (size.width() as f32 / 2.0) / self.zoom;
-        let half_h = (size.height() as f32 / 2.0) / self.zoom;
-        Rect::new(
-            Point::new(self.pos.x() - half_w, self.pos.y() - half_h),
-            Point::new(self.pos.x() + half_w, self.pos.y() + half_h),
-        )
+    pub fn buffer_size(&self, screen_size: ScreenCoords) -> ScreenCoords {
+        let w = (screen_size.width() as f32 / self.zoom)
+            .round()
+            .max(Self::MIN_BUFFER_DIM as f32) as u32;
+        let h = (screen_size.height() as f32 / self.zoom)
+            .round()
+            .max(Self::MIN_BUFFER_DIM as f32) as u32;
+        ScreenCoords::new(w, h)
     }
 
-    pub fn world_to_screen(&self, wxy: WorldCoords, screen_size: ScreenCoords) -> ScreenCoords {
-        let sx = ((wxy.x() - self.pos.x()) * self.zoom + screen_size.width() as f32 / 2.0) as u32;
-        let sy = ((wxy.y() - self.pos.y()) * self.zoom + screen_size.height() as f32 / 2.0) as u32;
-        ScreenCoords::new(sx, sy)
+    pub fn visible_rect(&self, screen_size: ScreenCoords) -> Rect<f32> {
+        let size = self.buffer_size(screen_size);
+        let half = Point::new(size.width() as f32 / 2.0, size.height() as f32 / 2.0);
+        Rect::new(self.pos.point() - half, self.pos.point() + half)
+    }
+
+    pub fn world_to_buffer(
+        &self,
+        wxy: WorldCoords,
+        buffer_size: ScreenCoords,
+    ) -> Option<ScreenCoords> {
+        let bx = wxy.x() - self.pos.x() + buffer_size.width() as f32 / 2.0;
+        let by = wxy.y() - self.pos.y() + buffer_size.height() as f32 / 2.0;
+
+        if bx >= 0.0
+            && bx < buffer_size.width() as f32
+            && by >= 0.0
+            && by < buffer_size.height() as f32
+        {
+            Some(ScreenCoords::new(bx as u32, by as u32))
+        } else {
+            None
+        }
     }
 
     pub fn screen_to_world(&self, sxy: ScreenCoords, screen_size: ScreenCoords) -> WorldCoords {
@@ -45,7 +67,7 @@ impl Camera {
     pub fn zoom_at(&mut self, sxy: ScreenCoords, factor: f32, screen_size: ScreenCoords) {
         let wxy = self.screen_to_world(sxy, screen_size);
         self.zoom *= factor;
-        self.zoom = self.zoom.clamp(0.1, 50.0);
+        self.zoom = self.zoom.clamp(1.0, 200.0); // Min 1.0: no sub-pixel rendering
         let new_wxy = self.screen_to_world(sxy, screen_size);
         *self.pos.x_mut() += wxy.x() - new_wxy.x();
         *self.pos.y_mut() += wxy.y() - new_wxy.y();

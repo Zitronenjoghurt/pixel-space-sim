@@ -10,6 +10,10 @@ impl WorldCoords {
         Self(Point::new(x, y))
     }
 
+    pub fn point(&self) -> Point<f32> {
+        self.0
+    }
+
     #[inline(always)]
     pub fn x(&self) -> f32 {
         self.0.x

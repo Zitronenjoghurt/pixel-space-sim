@@ -10,6 +10,10 @@ impl ScreenCoords {
         Self(Point::new(x, y))
     }
 
+    pub fn point(&self) -> Point<u32> {
+        self.0
+    }
+
     #[inline(always)]
     pub fn x(&self) -> u32 {
         self.0.x

@@ -33,6 +33,7 @@ impl App {
                     WindowEvent::RedrawRequested => self.render(),
                     WindowEvent::Resized(size) => {
                         self.gfx.resize(size.width, size.height);
+                        self.sync_buffer_size();
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         let new_pos = ScreenCoords::new(position.x as u32, position.y as u32);
@@ -68,6 +69,7 @@ impl App {
                         let factor = 1.0 + scroll * 0.1;
                         self.camera
                             .zoom_at(self.cursor_pos, factor, self.screen_size());
+                        self.sync_buffer_size();
                     }
                     _ => {}
                 }
@@ -80,15 +82,23 @@ impl App {
         }
     }
 
+    fn sync_buffer_size(&mut self) {
+        let buffer = self.camera.buffer_size(self.screen_size());
+        self.gfx.set_buffer_size(buffer.width(), buffer.height());
+    }
+
     fn update(&mut self) {}
 
     fn render(&mut self) {
+        self.sync_buffer_size();
+
         let screen_size = self.screen_size();
+        let buffer_size = self.buffer_size();
 
         {
             let frame = self.gfx.frame();
             frame.fill(0);
-            Self::draw_world(frame, screen_size, &self.camera);
+            Self::draw_world(frame, buffer_size, &self.camera);
         }
 
         let camera = &self.camera;
@@ -107,27 +117,29 @@ impl App {
                     cursor_world.x(),
                     cursor_world.y()
                 ));
+                ui.label(format!(
+                    "Buffer: {}x{}",
+                    buffer_size.width(),
+                    buffer_size.height()
+                ));
             });
         });
 
         self.gfx.render();
     }
 
-    fn draw_world(frame: &mut [u8], screen_size: ScreenCoords, camera: &Camera) {
-        let origin_screen = camera.world_to_screen(
+    fn draw_world(frame: &mut [u8], buffer_size: ScreenCoords, camera: &Camera) {
+        if let Some(origin_buffer) = camera.world_to_buffer(
             pss_core::math::world_coords::WorldCoords::new(0.0, 0.0),
-            screen_size,
-        );
-        Self::draw_pixel(frame, origin_screen, screen_size, [255, 0, 0, 255]);
+            buffer_size,
+        ) {
+            Self::draw_pixel(frame, origin_buffer, buffer_size, [255, 0, 0, 255]);
+        }
     }
 
     fn draw_pixel(frame: &mut [u8], pos: ScreenCoords, size: ScreenCoords, color: [u8; 4]) {
-        if pos.x() < size.width() && pos.y() < size.height() {
-            let idx = ((pos.y() * size.width() + pos.x()) * 4) as usize;
-            if idx + 4 <= frame.len() {
-                frame[idx..idx + 4].copy_from_slice(&color);
-            }
-        }
+        let idx = ((pos.y() * size.width() + pos.x()) * 4) as usize;
+        frame[idx..idx + 4].copy_from_slice(&color);
     }
 
     fn on_click(&mut self) {
@@ -140,5 +152,10 @@ impl App {
     fn screen_size(&self) -> ScreenCoords {
         let size = self.gfx.window().inner_size();
         ScreenCoords::new(size.width, size.height)
+    }
+
+    fn buffer_size(&self) -> ScreenCoords {
+        let [w, h] = self.gfx.buffer_size();
+        ScreenCoords::new(w, h)
     }
 }

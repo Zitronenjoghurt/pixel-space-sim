@@ -12,6 +12,8 @@ pub struct Gfx {
     screen: ScreenDescriptor,
     textures: egui::TexturesDelta,
     paint_jobs: Vec<egui::ClippedPrimitive>,
+    surface_size: [u32; 2],
+    buffer_size: [u32; 2],
 }
 
 impl Gfx {
@@ -47,15 +49,31 @@ impl Gfx {
             },
             textures: Default::default(),
             paint_jobs: Vec::new(),
+            surface_size: [size.width, size.height],
+            buffer_size: [size.width, size.height],
         }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
             self.pixels.resize_surface(width, height).unwrap();
-            self.pixels.resize_buffer(width, height).unwrap();
+            self.surface_size = [width, height];
             self.screen.size_in_pixels = [width, height];
         }
+    }
+
+    pub fn set_buffer_size(&mut self, width: u32, height: u32) {
+        let width = width.clamp(1, self.surface_size[0]);
+        let height = height.clamp(1, self.surface_size[1]);
+
+        if self.buffer_size != [width, height] {
+            self.pixels.resize_buffer(width, height).unwrap();
+            self.buffer_size = [width, height];
+        }
+    }
+
+    pub fn buffer_size(&self) -> [u32; 2] {
+        self.buffer_size
     }
 
     pub fn prepare_ui(&mut self, ui_fn: impl FnOnce(&egui::Context)) {
