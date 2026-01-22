@@ -9,7 +9,8 @@ egui = "0.26"
 egui-phosphor = "0.11.0"
 egui-wgpu = "0.26"
 egui-winit = "0.26"
-pixels = "0.15"
 strum = { workspace = true }
 strum_macros = { workspace = true }
 winit = "0.29"
+bytemuck = "1.24.0"
+pollster = "0.4.0"

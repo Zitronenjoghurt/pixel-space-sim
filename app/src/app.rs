@@ -2,7 +2,6 @@ use crate::camera::Camera;
 use crate::gfx::Gfx;
 use crate::ui::{AppContext, Ui};
 use pss_core::math::point::Point;
-use pss_core::math::rect::Rect;
 use pss_core::math::size::Size;
 use pss_core::simulation::command::SimCommand;
 use pss_core::simulation::settings::SimulationSettings;
@@ -22,7 +21,6 @@ pub struct App {
     sim_snapshot: Option<SimSnapshot>,
     cursor_pos: Point<f32>,
     drag_start: Option<Point<f32>>,
-    last_visible_rect: Rect<f32>,
 }
 
 impl App {
@@ -38,7 +36,6 @@ impl App {
             sim_snapshot: None,
             cursor_pos: Point::default(),
             drag_start: None,
-            last_visible_rect: Rect::default(),
         }
     }
 
@@ -108,11 +105,7 @@ impl App {
 
         if let Some(sim) = &self.simulation {
             let rect = self.camera.visible_rect(screen_size);
-            sim.send_command(SimCommand::SetScreenSize(screen_size));
-            if rect != self.last_visible_rect {
-                self.last_visible_rect = rect;
-                sim.send_command(SimCommand::SetVisibleRect(rect));
-            }
+            sim.send_command(SimCommand::SetVisibleRect(rect));
         }
 
         self.gfx.prepare_ui(|ctx| {
@@ -122,20 +115,40 @@ impl App {
                 camera: &self.camera,
                 cursor_pos: self.cursor_pos,
                 screen_size,
-                buffer_size: screen_size,
             };
             self.ui.draw(ctx, &app_ctx);
         });
 
         if let Some(sim) = &mut self.simulation {
-            let dest = self.gfx.frame();
             let frame = sim.read_frame();
-            frame.write_rgba(dest);
+
+            let frame_rect = frame.visible_rect();
+            let frame_size = frame.size();
+
             self.gfx
-                .set_buffer_size(frame.size().width, frame.size().height);
+                .resize_cell_buffer(frame_size.width, frame_size.height);
+
+            let cells_wide = frame_size.width as f32;
+            let cells_high = frame_size.height as f32;
+
+            let fract_x = frame_rect.min.x.rem_euclid(1.0);
+            let fract_y = frame_rect.min.y.rem_euclid(1.0);
+
+            let uv_offset = [fract_x / cells_wide, fract_y / cells_high];
+
+            let uv_scale = [
+                frame_rect.width() / cells_wide,
+                frame_rect.height() / cells_high,
+            ];
+
+            self.gfx.set_camera(uv_offset, uv_scale);
+
+            let dest = self.gfx.cell_buffer_mut();
+            frame.write_rgba(dest);
+
             self.sim_snapshot = Some(frame.snapshot.clone());
         } else {
-            self.gfx.frame().fill(0);
+            self.gfx.cell_buffer_mut().fill(0);
         }
 
         self.gfx.render();
@@ -151,10 +164,5 @@ impl App {
     fn screen_size(&self) -> Size<u32> {
         let s = self.gfx.window().inner_size();
         Size::new(s.width, s.height)
-    }
-
-    fn buffer_size(&self) -> Size<u32> {
-        let [w, h] = self.gfx.buffer_size();
-        Size::new(w, h)
     }
 }

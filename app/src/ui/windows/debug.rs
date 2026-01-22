@@ -80,13 +80,6 @@ impl UiWindow for DebugWindow<'_> {
                 ui.label("Cursor (World)");
                 ui.label(format!("{cursor_world}"));
                 ui.end_row();
-
-                ui.label("Buffer Size");
-                ui.label(format!(
-                    "{}x{}",
-                    self.app_ctx.buffer_size.width, self.app_ctx.buffer_size.height
-                ));
-                ui.end_row();
             });
     }
 }

@@ -44,17 +44,29 @@ impl Simulation {
     }
 
     pub fn update_frame(&self, frame: &mut SimFrame) {
-        frame.resize(self.screen_size);
         frame.set_visible_rect(self.visible_rect);
+        frame.resize_to_visible_rect();
         frame.clear();
 
-        frame.fill_cells([
-            (Point::new(0.0, 0.0), RGBA::red()),
-            (Point::new(1.0, 0.0), RGBA::blue()),
-            (Point::new(-1.0, -1.0), RGBA::yellow()),
-            (Point::new(0.0, 1.0), RGBA::green()),
-        ]);
+        let rect = self.visible_rect;
+        let min_x = (rect.min.x / 10.0).floor() as i32 * 10;
+        let max_x = (rect.max.x / 10.0).ceil() as i32 * 10;
+        let min_y = (rect.min.y / 10.0).floor() as i32 * 10;
+        let max_y = (rect.max.y / 10.0).ceil() as i32 * 10;
 
+        let cells = (min_y..=max_y).step_by(10).flat_map(|y| {
+            (min_x..=max_x).step_by(10).map(move |x| {
+                let color = match (x.rem_euclid(20) == 0, y.rem_euclid(20) == 0) {
+                    (true, true) => RGBA::white(),
+                    (true, false) => RGBA::red(),
+                    (false, true) => RGBA::blue(),
+                    (false, false) => RGBA::green(),
+                };
+                (Point::new(x as f32, y as f32), color)
+            })
+        });
+
+        frame.fill_cells(cells);
         self.update_snapshot(&mut frame.snapshot);
     }
 

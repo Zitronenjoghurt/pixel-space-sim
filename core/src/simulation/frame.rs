@@ -3,7 +3,6 @@ use crate::math::rect::Rect;
 use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 use crate::simulation::snapshot::SimSnapshot;
-use rayon::prelude::*;
 
 #[derive(Clone)]
 pub struct SimFrame {
@@ -27,10 +26,13 @@ impl SimFrame {
         self.size
     }
 
-    pub fn resize(&mut self, size: Size<u32>) {
-        if self.size != size && size.width > 0 && size.height > 0 {
-            self.size = size;
-            self.rgba.resize((size.width * size.height * 4) as usize, 0);
+    pub fn resize_to_visible_rect(&mut self) {
+        let width = (self.visible_rect.width().ceil() as u32 + 1).max(1);
+        let height = (self.visible_rect.height().ceil() as u32 + 1).max(1);
+
+        if self.size.width != width || self.size.height != height {
+            self.size = Size::new(width, height);
+            self.rgba.resize((width * height * 4) as usize, 0);
         }
     }
 
@@ -47,59 +49,41 @@ impl SimFrame {
         dest[..len].copy_from_slice(&self.rgba[..len]);
     }
 
-    pub fn zoom(&self) -> f32 {
-        let w = self.visible_rect.width();
-        if w > 0.0 {
-            self.size.width as f32 / w
-        } else {
-            1.0
-        }
-    }
-
-    pub fn world_to_screen(&self, world_pos: Point<f32>) -> Point<f32> {
-        let relative = world_pos - self.visible_rect.min;
-        let zoom = self.zoom();
-        Point::new(relative.x * zoom, relative.y * zoom)
+    pub fn rgba(&self) -> &[u8] {
+        &self.rgba
     }
 
     pub fn fill_cells(&mut self, points: impl IntoIterator<Item = (Point<f32>, RGBA)>) {
-        let points: Vec<_> = points.into_iter().collect();
+        let width = self.size.width as i32;
+        let height = self.size.height as i32;
+        let v_min = self.visible_rect.min;
 
-        let zoom = self.zoom();
-        let width = self.size.width as usize;
-        let v_rect = self.visible_rect;
-        let v_min = v_rect.min;
+        let origin_x = v_min.x.floor() as i32;
+        let origin_y = v_min.y.floor() as i32;
 
-        self.rgba
-            .par_chunks_mut(width * 4)
-            .enumerate()
-            .for_each(|(y, row)| {
-                let row_u32: &mut [u32] = bytemuck::cast_slice_mut(row);
-                let y_f = y as f32;
+        for (world_pos, color) in points {
+            let cell_x = world_pos.x.floor() as i32;
+            let cell_y = world_pos.y.floor() as i32;
 
-                for &(world_pos, color) in &points {
-                    let cell_y = world_pos.y.floor();
-                    let screen_y0 = (cell_y - v_min.y) * zoom;
-                    let screen_y1 = screen_y0 + zoom;
+            let buf_x = cell_x - origin_x;
+            let buf_y = cell_y - origin_y;
 
-                    if y_f < screen_y0 || y_f >= screen_y1 {
-                        continue;
-                    }
-
-                    let cell_x = world_pos.x.floor();
-                    let screen_x0 = (cell_x - v_min.x) * zoom;
-                    let x0 = (screen_x0.max(0.0) as usize).min(width);
-                    let x1 = ((screen_x0 + zoom).ceil() as usize).min(width);
-
-                    if x1 > x0 {
-                        row_u32[x0..x1].fill(u32::from(color));
-                    }
-                }
-            });
+            if buf_x >= 0 && buf_x < width && buf_y >= 0 && buf_y < height {
+                let idx = ((buf_y * width + buf_x) * 4) as usize;
+                self.rgba[idx..idx + 4].copy_from_slice(&color);
+            }
+        }
     }
 
     pub fn clear(&mut self) {
         self.rgba.fill(0);
+    }
+
+    pub fn sub_cell_offset(&self) -> [f32; 2] {
+        [
+            self.visible_rect.min.x.fract(),
+            self.visible_rect.min.y.fract(),
+        ]
     }
 }
 

@@ -27,18 +27,18 @@ impl Camera {
         let visible = self.visible_rect(screen);
         Point::new(
             visible.min.x + screen_pos.x / self.zoom,
-            visible.min.y + screen_pos.y / self.zoom,
+            visible.max.y - screen_pos.y / self.zoom,
         )
     }
 
     pub fn pan(&mut self, screen_delta: Point<f32>) {
         self.center.x += screen_delta.x / self.zoom;
-        self.center.y += screen_delta.y / self.zoom;
+        self.center.y -= screen_delta.y / self.zoom;
     }
 
     pub fn zoom_at(&mut self, screen_pos: Point<f32>, factor: f32, screen: Size<u32>) {
         let world_before = self.screen_to_world(screen_pos, screen);
-        self.zoom = (self.zoom * factor).clamp(0.5, 10000.0);
+        self.zoom = (self.zoom * factor).clamp(1.0, 10000.0);
         let world_after = self.screen_to_world(screen_pos, screen);
         self.center = self.center + (world_before - world_after);
     }

@@ -13,6 +13,15 @@ impl RGBA {
         Self::new(r, g, b, 255)
     }
 
+    pub fn normal_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self::new(
+            (r * 255.0) as u8,
+            (g * 255.0) as u8,
+            (b * 255.0) as u8,
+            (a * 255.0) as u8,
+        )
+    }
+
     pub fn r(&self) -> u8 {
         self.0[0]
     }

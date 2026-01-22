@@ -16,7 +16,6 @@ pub struct AppContext<'a> {
     pub sim_snapshot: Option<&'a SimSnapshot>,
     pub camera: &'a Camera,
     pub cursor_pos: Point<f32>,
-    pub buffer_size: Size<u32>,
     pub screen_size: Size<u32>,
 }
 
