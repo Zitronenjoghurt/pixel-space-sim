@@ -56,7 +56,7 @@ impl SimSource for LocalSim {
         self.event_rx.try_recv().ok()
     }
 
-    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u16>> {
+    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u32>> {
         let frame = self.frame_reader.read();
         let src = frame.pixels();
         let len = src.len().min(dest.len());

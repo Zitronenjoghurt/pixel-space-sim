@@ -57,4 +57,20 @@ impl Rect<f32> {
     pub fn contains(&self, p: Point<f32>) -> bool {
         p.x >= self.min.x && p.x < self.max.x && p.y >= self.min.y && p.y < self.max.y
     }
+
+    pub fn intersect(&self, other: &Rect<f32>) -> Option<Rect<f32>> {
+        let min_x = self.min.x.max(other.min.x);
+        let min_y = self.min.y.max(other.min.y);
+        let max_x = self.max.x.min(other.max.x);
+        let max_y = self.max.y.min(other.max.y);
+
+        if min_x < max_x && min_y < max_y {
+            Some(Rect {
+                min: Point::new(min_x, min_y),
+                max: Point::new(max_x, max_y),
+            })
+        } else {
+            None
+        }
+    }
 }

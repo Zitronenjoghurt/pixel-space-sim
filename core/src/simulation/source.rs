@@ -8,5 +8,5 @@ pub trait SimSource: Send {
     fn is_alive(&self) -> bool;
     fn send_command(&self, command: SimCommand);
     fn poll_event(&self) -> Option<SimEvent>;
-    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u16>>;
+    fn read_frame(&mut self, dest: &mut [u8]) -> Option<Size<u32>>;
 }

@@ -76,7 +76,9 @@ impl Gfx {
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
             self.pixels.resize_surface(width, height).unwrap();
+            self.pixels.resize_buffer(width, height).unwrap();
             self.surface_size = [width, height];
+            self.buffer_size = [width, height];
             self.screen.size_in_pixels = [width, height];
         }
     }

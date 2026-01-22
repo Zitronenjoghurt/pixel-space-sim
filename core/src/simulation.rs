@@ -15,6 +15,7 @@ pub struct Simulation {
     event_queue: VecDeque<event::SimEvent>,
     settings: settings::SimulationSettings,
     visible_rect: Rect<f32>,
+    screen_size: Size<u32>,
     ticks: u64,
     alive: bool,
     paused: bool,
@@ -26,6 +27,7 @@ impl Simulation {
             event_queue: VecDeque::new(),
             settings,
             visible_rect: Rect::default(),
+            screen_size: Size::new(1, 1),
             ticks: 0,
             alive: true,
             paused: false,
@@ -36,20 +38,19 @@ impl Simulation {
         if !force && self.paused {
             return;
         }
-
         self.ticks = self.ticks.wrapping_add(1);
     }
 
     pub fn draw(&self, buffer: &mut FrameBuffer) {
-        let size = Size::new(
-            self.visible_rect.width().max(1.0) as u16,
-            self.visible_rect.height().max(1.0) as u16,
-        );
-        buffer.resize(size);
-        buffer.visible_rect = self.visible_rect;
-        buffer.clear([20, 20, 20, 255]);
+        buffer.resize(self.screen_size);
+        buffer.set_visible_rect(self.visible_rect);
+        buffer.clear([20, 20, 30, 255]);
 
-        buffer.set_pixel(Point::new(0.0, 0.0), [255, 0, 0, 255]);
+        buffer.fill_cell(Point::new(0.0, 0.0), [255, 0, 0, 255]);
+
+        buffer.fill_cell(Point::new(1.0, 0.0), [0, 255, 0, 255]);
+        buffer.fill_cell(Point::new(0.0, 1.0), [0, 0, 255, 255]);
+        buffer.fill_cell(Point::new(-1.0, -1.0), [255, 255, 0, 255]);
     }
 
     pub fn handle_command(&mut self, command: SimCommand) {
@@ -60,6 +61,7 @@ impl Simulation {
             SimCommand::TogglePause => self.paused = !self.paused,
             SimCommand::Shutdown => self.alive = false,
             SimCommand::SetVisibleRect(rect) => self.visible_rect = rect,
+            SimCommand::SetScreenSize(size) => self.screen_size = size,
         }
     }
 

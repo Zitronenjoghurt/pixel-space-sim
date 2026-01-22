@@ -1,6 +1,6 @@
 use crate::math::rect::Rect;
+use crate::math::size::Size;
 
-#[derive(Debug, Clone, Copy)]
 pub enum SimCommand {
     Clear,
     Pause,
@@ -8,4 +8,5 @@ pub enum SimCommand {
     TogglePause,
     Shutdown,
     SetVisibleRect(Rect<f32>),
+    SetScreenSize(Size<u32>),
 }

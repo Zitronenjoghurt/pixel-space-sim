@@ -49,7 +49,6 @@ impl App {
                     WindowEvent::RedrawRequested => self.render(),
                     WindowEvent::Resized(size) => {
                         self.gfx.resize(size.width, size.height);
-                        self.sync_buffer_size();
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         let new_pos = Point::new(position.x as f32, position.y as f32);
@@ -99,19 +98,14 @@ impl App {
         }
     }
 
-    fn sync_buffer_size(&mut self) {
-        let buffer = self.camera.buffer_size(self.screen_size());
-        self.gfx.set_buffer_size(buffer.width, buffer.height);
-    }
-
     fn update(&mut self) {}
 
     fn render(&mut self) {
         let screen_size = self.screen_size();
-        let buffer_size = self.buffer_size();
 
         if let Some(sim) = &self.simulation {
             let rect = self.camera.visible_rect(screen_size);
+            sim.send_command(SimCommand::SetScreenSize(screen_size));
             if rect != self.last_visible_rect {
                 self.last_visible_rect = rect;
                 sim.send_command(SimCommand::SetVisibleRect(rect));
@@ -124,19 +118,15 @@ impl App {
                 camera: &self.camera,
                 cursor_pos: self.cursor_pos,
                 screen_size,
-                buffer_size,
+                buffer_size: screen_size,
             };
             self.ui.draw(ctx, &app_ctx);
         });
 
         if let Some(sim) = &mut self.simulation {
-            let max_buf = self.camera.buffer_size(screen_size);
-            self.gfx.set_buffer_size(max_buf.width, max_buf.height);
             let dest = self.gfx.frame();
-
             if let Some(size) = sim.read_frame(dest) {
-                self.gfx
-                    .set_buffer_size(size.width as u32, size.height as u32);
+                self.gfx.set_buffer_size(size.width, size.height);
             }
         } else {
             self.gfx.frame().fill(0);
