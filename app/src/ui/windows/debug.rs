@@ -42,14 +42,14 @@ impl UiWindow for DebugWindow<'_> {
             .striped(true)
             .show(ui, |ui| {
                 if let Some(snapshot) = self.app_ctx.sim_snapshot {
-                    ui.label("Single Frame Time");
+                    ui.label("Single Frame Time (CPU)");
                     ui.label(format!(
                         "{:.2}ms",
                         snapshot.avg_frame.as_secs_f32() * 1000.0
                     ));
                     ui.end_row();
 
-                    ui.label("Frame Time per Second");
+                    ui.label("Frame Time per Second (CPU)");
                     ui.label(format!(
                         "{:.2}ms",
                         snapshot.frame_time_per_second().as_secs_f32() * 1000.0
@@ -79,6 +79,10 @@ impl UiWindow for DebugWindow<'_> {
                     .screen_to_world(self.app_ctx.cursor_pos, self.app_ctx.screen_size);
                 ui.label("Cursor (World)");
                 ui.label(format!("{cursor_world}"));
+                ui.end_row();
+
+                ui.label("Screen Size");
+                ui.label(format!("{}", self.app_ctx.screen_size));
                 ui.end_row();
             });
     }

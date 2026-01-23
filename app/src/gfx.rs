@@ -38,6 +38,7 @@ struct CameraUniform {
 impl Gfx {
     pub fn new(window: Arc<Window>) -> Self {
         let size = window.inner_size();
+        let scale_factor = window.scale_factor() as f32;
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
@@ -187,7 +188,6 @@ impl Gfx {
             window_fill: egui::Color32::from_rgba_unmultiplied(30, 30, 30, 200),
             ..egui::Visuals::dark()
         });
-        egui_ctx.set_pixels_per_point(1.5);
 
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
@@ -230,7 +230,7 @@ impl Gfx {
             egui_renderer,
             screen: ScreenDescriptor {
                 size_in_pixels: [size.width, size.height],
-                pixels_per_point: 1.5,
+                pixels_per_point: scale_factor,
             },
             textures: Default::default(),
             paint_jobs: Vec::new(),
@@ -274,6 +274,11 @@ impl Gfx {
         &mut self.cell_buffer
     }
 
+    pub fn set_scale_factor(&mut self, scale_factor: f32) {
+        self.screen.pixels_per_point = scale_factor;
+        self.egui_ctx.set_pixels_per_point(scale_factor);
+    }
+
     pub fn set_camera(&mut self, uv_offset: [f32; 2], uv_scale: [f32; 2]) {
         let uniform = CameraUniform {
             uv_offset,
@@ -286,6 +291,8 @@ impl Gfx {
     pub fn prepare_ui(&mut self, ui_fn: impl FnOnce(&egui::Context)) {
         let input = self.egui_state.take_egui_input(&self.window);
         let output = self.egui_ctx.run(input, ui_fn);
+
+        self.screen.pixels_per_point = self.egui_ctx.pixels_per_point();
 
         self.textures.append(output.textures_delta);
         self.egui_state

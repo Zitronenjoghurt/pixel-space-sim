@@ -1,4 +1,5 @@
 use crate::math::point::Point;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Size<N> {
@@ -28,5 +29,17 @@ impl Size<u32> {
 impl Size<f32> {
     pub fn to_u32(self) -> Size<u32> {
         Size::new(self.width as u32, self.height as u32)
+    }
+}
+
+impl Display for Size<f32> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.2}x{:.2}", self.width, self.height)
+    }
+}
+
+impl Display for Size<u32> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}", self.width, self.height)
     }
 }

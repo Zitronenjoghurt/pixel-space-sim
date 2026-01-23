@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-const ALPHA: f64 = 0.1;
+const ALPHA: f64 = 0.01;
 
 /// Exponential Moving Average
 #[derive(Default, Clone, Copy)]
