@@ -49,10 +49,10 @@ impl UiWindow for DebugWindow<'_> {
                     ));
                     ui.end_row();
 
-                    ui.label("Frame Time per Second (CPU)");
+                    ui.label("Frame Time Budget (CPU)");
                     ui.label(format!(
-                        "{:.2}ms",
-                        snapshot.frame_time_per_second().as_secs_f32() * 1000.0
+                        "{:.2}%",
+                        snapshot.frame_time_per_second().as_secs_f32() * 100.0
                     ));
                     ui.end_row();
 

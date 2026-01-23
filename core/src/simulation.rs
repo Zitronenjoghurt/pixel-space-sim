@@ -5,10 +5,10 @@ use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 use crate::simulation::command::SimCommand;
 use crate::simulation::frame::SimFrame;
-use crate::simulation::procedural::hash::ProcHash;
+use crate::simulation::state::SimState;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::ops::Add;
 use std::time::Instant;
 
@@ -19,33 +19,30 @@ mod procedural;
 pub mod settings;
 pub mod snapshot;
 pub mod source;
+pub mod state;
 
 pub struct Simulation {
+    state: SimState,
     event_queue: VecDeque<event::SimEvent>,
-    settings: settings::SimulationSettings,
     visible_rect: Rect<f32>,
     screen_size: Size<u32>,
     ticks: u64,
     alive: bool,
     paused: bool,
-    discovered_asteroids: HashMap<Point<i64>, f32>,
-    depleted_asteroids: HashSet<Point<i64>>,
     debounce_visible: Option<Instant>,
     visible_asteroids: HashSet<Point<i64>>,
 }
 
 impl Simulation {
-    pub fn from_settings(settings: settings::SimulationSettings) -> Self {
+    pub fn new(state: SimState) -> Self {
         Self {
+            state,
             event_queue: VecDeque::new(),
-            settings,
             visible_rect: Rect::default(),
             screen_size: Size::new(1, 1),
             ticks: 0,
             alive: true,
             paused: false,
-            discovered_asteroids: Default::default(),
-            depleted_asteroids: Default::default(),
             debounce_visible: None,
             visible_asteroids: Default::default(),
         }
@@ -79,7 +76,8 @@ impl Simulation {
 
     fn debounce_update_visible(&mut self) {
         if self.debounce_visible.is_none() {
-            self.debounce_visible = Some(Instant::now().add(self.settings.visible_update_cooldown));
+            self.debounce_visible =
+                Some(Instant::now().add(self.state.settings.visible_update_cooldown));
         }
     }
 
@@ -95,7 +93,7 @@ impl Simulation {
         }
 
         self.visible_asteroids.clear();
-        self.discovered_asteroids.keys().for_each(|point| {
+        self.state.discovered_asteroids.keys().for_each(|point| {
             if self.visible_rect.contains(point.to_f32()) {
                 self.visible_asteroids.insert(*point);
             }
@@ -104,8 +102,8 @@ impl Simulation {
     }
 
     fn update_snapshot(&self, snapshot: &mut snapshot::SimSnapshot) {
-        snapshot.discovered_asteroids = self.discovered_asteroids.len();
-        snapshot.settings = self.settings.clone();
+        snapshot.discovered_asteroids = self.state.discovered_asteroids.len();
+        snapshot.settings = self.state.settings.clone();
     }
 
     pub fn handle_command(&mut self, command: SimCommand) {
@@ -130,35 +128,14 @@ impl Simulation {
     }
 
     pub fn settings(&self) -> &settings::SimulationSettings {
-        &self.settings
+        &self.state.settings
     }
 }
 
-/// World queries
-impl Simulation {
-    pub fn has_asteroid_resources(&self, point: Point<i64>) -> bool {
-        self.discovered_asteroids.contains_key(&point)
-    }
-
-    pub fn has_asteroid_depleted(&self, point: Point<i64>) -> bool {
-        self.depleted_asteroids.contains(&point)
-    }
-
-    pub fn has_new_asteroid(&self, point: Point<i64>) -> bool {
-        if self.has_asteroid_resources(point) || self.has_asteroid_depleted(point) {
-            false
-        } else {
-            let normal = ProcHash::from_point_i64(self.settings.seed(), point).normalized();
-            let resource_density = 0.001;
-            normal < resource_density
-        }
-    }
-}
-
-/// World updates
+// World updates
 impl Simulation {
     pub fn discover_asteroid(&mut self, point: Point<i64>) {
-        self.discovered_asteroids.insert(point, 0.0);
+        self.state.discovered_asteroids.insert(point, 0.0);
         self.update_visible(true);
     }
 
@@ -167,7 +144,7 @@ impl Simulation {
 
         let new_asteroids: Vec<_> = points
             .par_iter()
-            .filter(|point| self.has_new_asteroid(**point))
+            .filter(|point| self.state.has_new_asteroid(**point))
             .copied()
             .collect();
 

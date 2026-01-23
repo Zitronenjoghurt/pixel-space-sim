@@ -31,7 +31,7 @@ impl LocalSimContext {
                 break;
             }
 
-            let tick_interval = self.simulation.settings.interval_tps();
+            let tick_interval = self.simulation.settings().interval_tps();
             while now.duration_since(last_tick) >= tick_interval {
                 let start = Instant::now();
                 self.simulation.tick(false);
@@ -39,7 +39,7 @@ impl LocalSimContext {
                 last_tick += tick_interval;
             }
 
-            let render_interval = self.simulation.settings.interval_fps();
+            let render_interval = self.simulation.settings().interval_fps();
             if now.duration_since(last_render) >= render_interval {
                 let start = Instant::now();
                 self.render_frame();

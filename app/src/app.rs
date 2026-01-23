@@ -4,10 +4,10 @@ use crate::ui::{AppContext, Ui};
 use pss_core::math::point::Point;
 use pss_core::math::size::Size;
 use pss_core::simulation::command::SimCommand;
-use pss_core::simulation::settings::SimulationSettings;
 use pss_core::simulation::snapshot::SimSnapshot;
 use pss_core::simulation::source::local::LocalSim;
 use pss_core::simulation::source::SimSource;
+use pss_core::simulation::state::SimState;
 use std::sync::Arc;
 use winit::event::{ElementState, Event, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoopWindowTarget;
@@ -25,8 +25,7 @@ pub struct App {
 
 impl App {
     pub fn new(window: Arc<Window>) -> Self {
-        let settings = SimulationSettings::default_with_seed(2);
-        let sim = LocalSim::spawn(settings);
+        let sim = LocalSim::spawn(SimState::new_with_seed(2));
 
         Self {
             camera: Camera::new(),

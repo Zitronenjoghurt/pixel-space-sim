@@ -2,9 +2,9 @@ use crate::math::ema::EMA;
 use crate::simulation::command::SimCommand;
 use crate::simulation::event::SimEvent;
 use crate::simulation::frame::SimFrame;
-use crate::simulation::settings::SimulationSettings;
 use crate::simulation::source::local::context::LocalSimContext;
 use crate::simulation::source::SimSource;
+use crate::simulation::state::SimState;
 use crate::simulation::Simulation;
 use std::sync::mpsc;
 use triple_buffer::TripleBuffer;
@@ -19,14 +19,14 @@ pub struct LocalSim {
 }
 
 impl LocalSim {
-    pub fn spawn(settings: SimulationSettings) -> Self {
+    pub fn spawn(state: SimState) -> Self {
         let (command_tx, command_rx) = mpsc::channel();
         let (event_tx, event_rx) = mpsc::channel();
         let (frame_writer, frame_reader) = TripleBuffer::new(&SimFrame::default()).split();
 
         let thread = std::thread::spawn(move || {
             let context = LocalSimContext {
-                simulation: Simulation::from_settings(settings),
+                simulation: Simulation::new(state),
                 command_rx,
                 event_tx,
                 frame_writer,
