@@ -2,6 +2,7 @@ use crate::ui::widgets::toggle_button::ToggleButton;
 use egui::{Context, Id, Ui, Widget, WidgetText};
 
 mod debug;
+mod draw;
 pub mod main;
 
 pub trait UiWindow: Sized {

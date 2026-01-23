@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Point<N> {
     pub x: N,
     pub y: N,
@@ -57,11 +57,25 @@ impl Point<u32> {
 
 impl Point<f32> {
     pub fn to_u32(self) -> Point<u32> {
-        self.map(|n| n as u32)
+        self.map(|n| n.floor() as u32)
+    }
+
+    pub fn to_i64(self) -> Point<i64> {
+        self.map(|n| n as i64)
     }
 
     pub fn round(self) -> Self {
         self.map(|n| n.round())
+    }
+
+    pub fn floor(self) -> Self {
+        self.map(|n| n.floor())
+    }
+}
+
+impl Point<i64> {
+    pub fn to_f32(self) -> Point<f32> {
+        self.map(|n| n as f32)
     }
 }
 

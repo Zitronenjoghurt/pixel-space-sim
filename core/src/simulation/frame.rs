@@ -49,10 +49,6 @@ impl SimFrame {
         dest[..len].copy_from_slice(&self.rgba[..len]);
     }
 
-    pub fn rgba(&self) -> &[u8] {
-        &self.rgba
-    }
-
     pub fn fill_cells(&mut self, points: impl IntoIterator<Item = (Point<f32>, RGBA)>) {
         let width = self.size.width as i32;
         let height = self.size.height as i32;
@@ -77,13 +73,6 @@ impl SimFrame {
 
     pub fn clear(&mut self) {
         self.rgba.fill(0);
-    }
-
-    pub fn sub_cell_offset(&self) -> [f32; 2] {
-        [
-            self.visible_rect.min.x.fract(),
-            self.visible_rect.min.y.fract(),
-        ]
     }
 }
 

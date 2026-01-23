@@ -1,10 +1,12 @@
 use crate::ui::windows::debug::{DebugWindow, DebugWindowState};
+use crate::ui::windows::draw::{DrawWindow, DrawWindowState};
 use crate::ui::windows::{ToggleableUiWindow, UiWindow};
 use crate::ui::AppContext;
 use egui::{Id, Ui, WidgetText};
 
 pub struct MainWindowState {
     pub is_open: bool,
+    pub draw: DrawWindowState,
     debug: DebugWindowState,
 }
 
@@ -12,6 +14,7 @@ impl Default for MainWindowState {
     fn default() -> Self {
         Self {
             is_open: true,
+            draw: Default::default(),
             debug: Default::default(),
         }
     }
@@ -48,6 +51,9 @@ impl UiWindow for MainWindow<'_> {
     fn render_content(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             DebugWindow::new(&mut self.state.debug, self.app_ctx)
+                .toggle_button(ui)
+                .show(ui.ctx());
+            DrawWindow::new(&mut self.state.draw, self.app_ctx)
                 .toggle_button(ui)
                 .show(ui.ctx());
         });

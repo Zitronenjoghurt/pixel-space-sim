@@ -25,7 +25,7 @@ pub struct App {
 
 impl App {
     pub fn new(window: Arc<Window>) -> Self {
-        let settings = SimulationSettings::default();
+        let settings = SimulationSettings::default_with_seed(2);
         let sim = LocalSim::spawn(settings);
 
         Self {
@@ -62,15 +62,13 @@ impl App {
                         self.cursor_pos = new_pos;
                     }
                     WindowEvent::MouseInput { state, button, .. } if !egui_consumed => {
+                        self.ui.on_mouse_input(state, button);
                         match (button, state) {
                             (MouseButton::Middle, ElementState::Pressed) => {
                                 self.drag_start = Some(self.cursor_pos);
                             }
                             (MouseButton::Middle, ElementState::Released) => {
                                 self.drag_start = None;
-                            }
-                            (MouseButton::Left, ElementState::Pressed) => {
-                                self.on_click();
                             }
                             _ => {}
                         }
@@ -113,7 +111,7 @@ impl App {
                 simulation: self.simulation.as_deref(),
                 sim_snapshot: self.sim_snapshot.as_ref(),
                 camera: &self.camera,
-                cursor_pos: self.cursor_pos,
+                cursor_screen_pos: self.cursor_pos,
                 screen_size,
             };
             self.ui.draw(ctx, &app_ctx);
@@ -152,13 +150,6 @@ impl App {
         }
 
         self.gfx.render();
-    }
-
-    fn on_click(&mut self) {
-        let world_pos = self
-            .camera
-            .screen_to_world(self.cursor_pos, self.screen_size());
-        println!("Clicked at world: ({}, {})", world_pos.x, world_pos.y);
     }
 
     fn screen_size(&self) -> Size<u32> {

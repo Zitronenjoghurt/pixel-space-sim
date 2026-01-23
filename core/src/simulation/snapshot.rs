@@ -3,6 +3,7 @@ use std::time::Duration;
 
 #[derive(Default, Clone)]
 pub struct SimSnapshot {
+    pub discovered_asteroids: usize,
     pub settings: SimulationSettings,
     pub avg_frame: Duration,
     pub avg_tick: Duration,

@@ -1,3 +1,5 @@
+pub mod area;
+pub mod circle;
 pub mod ema;
 pub mod point;
 pub mod rect;

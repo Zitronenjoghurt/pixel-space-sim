@@ -7,10 +7,18 @@ pub struct Size<N> {
     pub height: N,
 }
 
-impl<N> Size<N> {
+impl<N> Size<N>
+where
+    N: Copy,
+{
     #[inline]
     pub const fn new(width: N, height: N) -> Self {
         Self { width, height }
+    }
+
+    #[inline]
+    pub const fn new_square(size: N) -> Self {
+        Self::new(size, size)
     }
 }
 

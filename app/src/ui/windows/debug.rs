@@ -59,6 +59,10 @@ impl UiWindow for DebugWindow<'_> {
                     ui.label("Tick Time");
                     ui.label(format!("{:.2}ms", snapshot.avg_tick.as_secs_f32() * 1000.0));
                     ui.end_row();
+
+                    ui.label("Discovered Asteroids");
+                    ui.label(format!("{}", snapshot.discovered_asteroids));
+                    ui.end_row();
                 }
 
                 ui.label("Camera Center");
@@ -70,15 +74,11 @@ impl UiWindow for DebugWindow<'_> {
                 ui.end_row();
 
                 ui.label("Cursor (Screen)");
-                ui.label(format!("{}", self.app_ctx.cursor_pos));
+                ui.label(format!("{}", self.app_ctx.cursor_screen_pos));
                 ui.end_row();
 
-                let cursor_world = self
-                    .app_ctx
-                    .camera
-                    .screen_to_world(self.app_ctx.cursor_pos, self.app_ctx.screen_size);
                 ui.label("Cursor (World)");
-                ui.label(format!("{cursor_world}"));
+                ui.label(format!("{}", self.app_ctx.cursor_world_pos()));
                 ui.end_row();
 
                 ui.label("Screen Size");

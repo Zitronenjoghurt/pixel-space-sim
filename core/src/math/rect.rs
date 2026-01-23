@@ -55,6 +55,10 @@ impl Rect<f32> {
         }
     }
 
+    pub fn new_square(center: Point<f32>, size: f32) -> Self {
+        Self::from_center_size(center, Size::new_square(size))
+    }
+
     #[inline(always)]
     pub fn contains(&self, p: Point<f32>) -> bool {
         p.x >= self.min.x && p.x < self.max.x && p.y >= self.min.y && p.y < self.max.y
@@ -74,5 +78,35 @@ impl Rect<f32> {
         } else {
             None
         }
+    }
+}
+
+impl Rect<f32> {
+    pub fn floor(&self) -> Self {
+        Rect {
+            min: self.min.floor(),
+            max: self.max.floor(),
+        }
+    }
+
+    pub fn to_u32(&self) -> Rect<u32> {
+        Rect {
+            min: self.min.to_u32(),
+            max: self.max.to_u32(),
+        }
+    }
+
+    pub fn to_i64(&self) -> Rect<i64> {
+        Rect {
+            min: self.min.to_i64(),
+            max: self.max.to_i64(),
+        }
+    }
+}
+
+impl Rect<i64> {
+    pub fn iter(&self) -> impl Iterator<Item = Point<i64>> {
+        (self.min.x..=self.max.x)
+            .flat_map(move |x| (self.min.y..=self.max.y).map(move |y| Point::new(x, y)))
     }
 }
