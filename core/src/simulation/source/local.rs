@@ -1,10 +1,10 @@
 use crate::math::ema::EMA;
-use crate::simulation::command::SimCommand;
-use crate::simulation::event::SimEvent;
 use crate::simulation::frame::SimFrame;
 use crate::simulation::source::local::context::LocalSimContext;
 use crate::simulation::source::SimSource;
 use crate::simulation::state::SimState;
+use crate::simulation::sync::command::SimCommand;
+use crate::simulation::sync::event::SimEvent;
 use crate::simulation::Simulation;
 use std::sync::mpsc;
 use triple_buffer::TripleBuffer;

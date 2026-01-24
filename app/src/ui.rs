@@ -3,8 +3,8 @@ use crate::ui::windows::main::{MainWindow, MainWindowState};
 use crate::ui::windows::UiWindow;
 use pss_core::math::point::Point;
 use pss_core::math::size::Size;
-use pss_core::simulation::snapshot::SimSnapshot;
 use pss_core::simulation::source::SimSource;
+use pss_core::simulation::sync::snapshot::SimSnapshot;
 use winit::event::{ElementState, KeyEvent, MouseButton};
 use winit::keyboard::{KeyCode, PhysicalKey};
 

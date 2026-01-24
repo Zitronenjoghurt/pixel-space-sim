@@ -185,7 +185,7 @@ impl Gfx {
 
         let egui_ctx = egui::Context::default();
         egui_ctx.set_visuals(egui::Visuals {
-            window_fill: egui::Color32::from_rgba_unmultiplied(30, 30, 30, 200),
+            window_fill: egui::Color32::from_rgba_unmultiplied(30, 30, 30, 240),
             ..egui::Visuals::dark()
         });
 

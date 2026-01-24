@@ -1,25 +1,24 @@
 use crate::math::area::Area;
 use crate::math::point::Point;
 use crate::math::rect::Rect;
-use crate::math::rgba::RGBA;
 use crate::math::size::Size;
-use crate::simulation::command::SimCommand;
 use crate::simulation::frame::SimFrame;
+use crate::simulation::procedural::asteroid_shape::asteroid_shape_eclipse_radii;
 use crate::simulation::state::SimState;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
+use state::settings;
 use std::collections::{HashSet, VecDeque};
 use std::ops::Add;
 use std::time::Instant;
+use sync::command::SimCommand;
+use sync::{event, snapshot};
 
-pub mod command;
-pub mod event;
 mod frame;
 mod procedural;
-pub mod settings;
-pub mod snapshot;
 pub mod source;
 pub mod state;
+pub mod sync;
 
 pub struct Simulation {
     state: SimState,
@@ -65,11 +64,17 @@ impl Simulation {
 
         self.update_visible(false);
 
-        frame.fill_cells(
-            self.visible_asteroids
-                .iter()
-                .map(|point| (point.to_f32(), RGBA::white())),
-        );
+        for point in self.visible_asteroids.iter() {
+            let Some(resource_type) = self.state.resource_type_at(*point) else {
+                continue;
+            };
+            let Some(scale) = self.state.asteroid_scale_at(*point) else {
+                continue;
+            };
+            let shape_seed = self.state.asteroid_shape_seed(*point);
+            let (rx, ry) = asteroid_shape_eclipse_radii(shape_seed, scale);
+            frame.fill_ellipse(point.to_f32(), rx, ry, resource_type.into());
+        }
 
         self.update_snapshot(&mut frame.snapshot);
     }

@@ -1556,12 +1556,13 @@ dependencies = [
 name = "pss-core"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
  "either",
  "rand",
+ "rapidhash",
  "rayon",
  "spin_sleep",
  "triple_buffer",
+ "wide",
 ]
 
 [[package]]
@@ -1622,6 +1623,15 @@ name = "range-alloc"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d6831663a5098ea164f89cff59c6284e95f4e3c76ce9848d4529f5ccca9bde"
+
+[[package]]
+name = "rapidhash"
+version = "4.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d8b5b858a440a0bc02625b62dd95131b9201aa9f69f411195dd4a7cfb1de3d7"
+dependencies = [
+ "rustversion",
+]
 
 [[package]]
 name = "raw-window-handle"
@@ -1731,6 +1741,15 @@ name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+
+[[package]]
+name = "safe_arch"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f7caad094bd561859bcd467734a720c3c1f5d1f338995351fefe2190c45efed"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "same-file"
@@ -2563,6 +2582,16 @@ dependencies = [
  "bitflags 2.10.0",
  "js-sys",
  "web-sys",
+]
+
+[[package]]
+name = "wide"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac11b009ebeae802ed758530b6496784ebfee7a87b9abfbcaf3bbe25b814eb25"
+dependencies = [
+ "bytemuck",
+ "safe_arch",
 ]
 
 [[package]]

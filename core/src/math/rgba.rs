@@ -5,15 +5,15 @@ use std::ops::Deref;
 pub struct RGBA([u8; 4]);
 
 impl RGBA {
-    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+    pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self([r, g, b, a])
     }
 
-    pub fn rgb(r: u8, g: u8, b: u8) -> Self {
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
         Self::new(r, g, b, 255)
     }
 
-    pub fn normal_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+    pub const fn normal_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self::new(
             (r * 255.0) as u8,
             (g * 255.0) as u8,
@@ -38,35 +38,35 @@ impl RGBA {
         self.0[3]
     }
 
-    pub fn red() -> Self {
+    pub const fn red() -> Self {
         Self::new(255, 0, 0, 255)
     }
 
-    pub fn green() -> Self {
+    pub const fn green() -> Self {
         Self::new(0, 255, 0, 255)
     }
 
-    pub fn blue() -> Self {
+    pub const fn blue() -> Self {
         Self::new(0, 0, 255, 255)
     }
 
-    pub fn yellow() -> Self {
+    pub const fn yellow() -> Self {
         Self::new(255, 255, 0, 255)
     }
 
-    pub fn magenta() -> Self {
+    pub const fn magenta() -> Self {
         Self::new(255, 0, 255, 255)
     }
 
-    pub fn cyan() -> Self {
+    pub const fn cyan() -> Self {
         Self::new(0, 255, 255, 255)
     }
 
-    pub fn black() -> Self {
+    pub const fn black() -> Self {
         Self::new(0, 0, 0, 255)
     }
 
-    pub fn white() -> Self {
+    pub const fn white() -> Self {
         Self::new(255, 255, 255, 255)
     }
 }

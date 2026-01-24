@@ -1,4 +1,4 @@
-use crate::simulation::settings::SimulationSettings;
+use crate::simulation::state::settings::SimulationSettings;
 use std::time::Duration;
 
 #[derive(Default, Clone)]

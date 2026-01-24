@@ -1,7 +1,9 @@
 use crate::math::point::Point;
-use crate::simulation::procedural::hash::ProcHash;
-use crate::simulation::settings;
+use crate::simulation::procedural::hash::{ProcHash, ProcHashDomain};
 use std::collections::{HashMap, HashSet};
+
+pub mod resource;
+pub mod settings;
 
 #[derive(Debug, Clone)]
 pub struct SimState {
@@ -30,6 +32,32 @@ impl SimState {
     }
 }
 
+// Procedural generation
+impl SimState {
+    fn asteroid_exists(&self, point: Point<i64>) -> bool {
+        let normal =
+            ProcHash::from_point_i64(self.seed, point, ProcHashDomain::AsteroidExists).normalized();
+        normal < self.settings.asteroid_density
+    }
+
+    fn asteroid_resource_type(&self, point: Point<i64>) -> resource::ResourceType {
+        let uniform =
+            ProcHash::from_point_i64(self.seed, point, ProcHashDomain::AsteroidResourceType)
+                .uniform_n(100);
+        match uniform {
+            0..=60 => resource::ResourceType::Ice,
+            61..=90 => resource::ResourceType::Iron,
+            _ => resource::ResourceType::Gold,
+        }
+    }
+
+    fn asteroid_initial_amount(&self, point: Point<i64>) -> f32 {
+        let n = ProcHash::from_point_i64(self.seed, point, ProcHashDomain::AsteroidResourceAmount)
+            .normalized() as f32;
+        n * n * self.settings.max_asteroid_resource_amount
+    }
+}
+
 // World queries
 impl SimState {
     pub fn has_asteroid_resources(&self, point: Point<i64>) -> bool {
@@ -44,9 +72,31 @@ impl SimState {
         if self.has_asteroid_resources(point) || self.has_asteroid_depleted(point) {
             false
         } else {
-            let normal = ProcHash::from_point_i64(self.seed, point).normalized();
-            let resource_density = 0.001;
-            normal < resource_density
+            self.asteroid_exists(point)
         }
+    }
+
+    pub fn resource_type_at(&self, point: Point<i64>) -> Option<resource::ResourceType> {
+        if !self.has_asteroid_resources(point) {
+            return None;
+        }
+        Some(self.asteroid_resource_type(point))
+    }
+
+    pub fn resource_amount_at(&self, point: Point<i64>) -> Option<f32> {
+        let mined_amount = self.discovered_asteroids.get(&point)?;
+        Some((self.asteroid_initial_amount(point) - mined_amount).max(0.0))
+    }
+
+    pub fn asteroid_scale_at(&self, point: Point<i64>) -> Option<f32> {
+        let resource_amount = self.resource_amount_at(point)?;
+        Some(
+            resource_amount / self.settings.max_asteroid_resource_amount
+                * self.settings.max_asteroid_scale,
+        )
+    }
+
+    pub fn asteroid_shape_seed(&self, point: Point<i64>) -> u64 {
+        ProcHash::from_point_i64(self.seed, point, ProcHashDomain::AsteroidShape).raw()
     }
 }

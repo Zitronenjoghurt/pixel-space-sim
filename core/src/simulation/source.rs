@@ -1,6 +1,6 @@
-use crate::simulation::command::SimCommand;
-use crate::simulation::event::SimEvent;
 use crate::simulation::frame::SimFrame;
+use crate::simulation::sync::command::SimCommand;
+use crate::simulation::sync::event::SimEvent;
 
 pub mod local;
 

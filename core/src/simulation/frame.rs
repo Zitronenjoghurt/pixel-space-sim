@@ -2,7 +2,7 @@ use crate::math::point::Point;
 use crate::math::rect::Rect;
 use crate::math::rgba::RGBA;
 use crate::math::size::Size;
-use crate::simulation::snapshot::SimSnapshot;
+use crate::simulation::sync::snapshot::SimSnapshot;
 
 #[derive(Clone)]
 pub struct SimFrame {
@@ -49,24 +49,60 @@ impl SimFrame {
         dest[..len].copy_from_slice(&self.rgba[..len]);
     }
 
-    pub fn fill_cells(&mut self, points: impl IntoIterator<Item = (Point<f32>, RGBA)>) {
+    pub fn fill_cell(&mut self, world_pos: Point<f32>, color: RGBA) {
         let width = self.size.width as i32;
         let height = self.size.height as i32;
-        let v_min = self.visible_rect.min;
 
-        let origin_x = v_min.x.floor() as i32;
-        let origin_y = v_min.y.floor() as i32;
+        let origin_x = self.visible_rect.min.x.floor() as i32;
+        let origin_y = self.visible_rect.min.y.floor() as i32;
 
-        for (world_pos, color) in points {
-            let cell_x = world_pos.x.floor() as i32;
-            let cell_y = world_pos.y.floor() as i32;
+        let buf_x = world_pos.x.floor() as i32 - origin_x;
+        let buf_y = world_pos.y.floor() as i32 - origin_y;
 
-            let buf_x = cell_x - origin_x;
-            let buf_y = cell_y - origin_y;
+        if buf_x >= 0 && buf_x < width && buf_y >= 0 && buf_y < height {
+            let idx = ((buf_y * width + buf_x) * 4) as usize;
+            self.rgba[idx..idx + 4].copy_from_slice(&color);
+        }
+    }
 
-            if buf_x >= 0 && buf_x < width && buf_y >= 0 && buf_y < height {
-                let idx = ((buf_y * width + buf_x) * 4) as usize;
-                self.rgba[idx..idx + 4].copy_from_slice(&color);
+    pub fn fill_ellipse(&mut self, center: Point<f32>, rx: f32, ry: f32, color: RGBA) {
+        let width = self.size.width as i32;
+        let height = self.size.height as i32;
+
+        let origin_x = self.visible_rect.min.x.floor() as i32;
+        let origin_y = self.visible_rect.min.y.floor() as i32;
+
+        let min_x = ((center.x - rx).floor() as i32 - origin_x).max(0);
+        let max_x = ((center.x + rx).ceil() as i32 - origin_x).min(width - 1);
+        let min_y = ((center.y - ry).floor() as i32 - origin_y).max(0);
+        let max_y = ((center.y + ry).ceil() as i32 - origin_y).min(height - 1);
+
+        if min_x > max_x || min_y > max_y {
+            return;
+        }
+
+        let cx = center.x - origin_x as f32;
+        let cy = center.y - origin_y as f32;
+        let inv_rx_sq = 1.0 / (rx * rx);
+        let inv_ry_sq = 1.0 / (ry * ry);
+
+        for y in min_y..=max_y {
+            let dy = y as f32 + 0.5 - cy;
+            let dy_term = dy * dy * inv_ry_sq;
+
+            if dy_term > 1.0 {
+                continue;
+            }
+
+            let row_start = (y * width) as usize * 4;
+
+            for x in min_x..=max_x {
+                let dx = x as f32 + 0.5 - cx;
+
+                if dx * dx * inv_rx_sq + dy_term <= 1.0 {
+                    let idx = row_start + (x as usize * 4);
+                    self.rgba[idx..idx + 4].copy_from_slice(&color);
+                }
             }
         }
     }

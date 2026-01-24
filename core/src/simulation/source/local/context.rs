@@ -1,7 +1,7 @@
 use crate::math::ema::EMA;
-use crate::simulation::command::SimCommand;
-use crate::simulation::event::SimEvent;
 use crate::simulation::frame::SimFrame;
+use crate::simulation::sync::command::SimCommand;
+use crate::simulation::sync::event::SimEvent;
 use crate::simulation::Simulation;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};

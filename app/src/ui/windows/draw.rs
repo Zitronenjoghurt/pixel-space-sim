@@ -7,7 +7,7 @@ use pss_core::math::area::Area;
 use pss_core::math::circle::Circle;
 use pss_core::math::point::Point;
 use pss_core::math::rect::Rect;
-use pss_core::simulation::command::SimCommand;
+use pss_core::simulation::sync::command::SimCommand;
 use std::fmt::Display;
 use strum_macros::EnumIter;
 
