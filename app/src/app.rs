@@ -11,13 +11,15 @@ use pss_core::simulation::sync::command::SimCommand;
 use pss_core::simulation::sync::snapshot::SimSnapshot;
 use std::sync::Arc;
 use std::time::Instant;
-use winit::event::{ElementState, Event, MouseButton, MouseScrollDelta, WindowEvent};
-use winit::event_loop::EventLoopWindowTarget;
-use winit::window::Window;
+use winit::application::ApplicationHandler;
+use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event_loop::ActiveEventLoop;
+use winit::window::{Window, WindowId};
 
 pub struct App {
+    window: Option<Arc<Window>>,
+    gfx: Option<Gfx>,
     camera: Camera,
-    gfx: Gfx,
     ui: Ui,
     simulation: Option<Box<dyn SimSource>>,
     sim_snapshot: Option<SimSnapshot>,
@@ -28,12 +30,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(window: Arc<Window>) -> Self {
+    pub fn new() -> Self {
         let sim = LocalSim::spawn(SimState::new_with_seed(2));
 
         Self {
+            window: None,
+            gfx: None,
             camera: Camera::new(),
-            gfx: Gfx::new(window),
             ui: Ui::default(),
             simulation: Some(Box::new(sim)),
             sim_snapshot: None,
@@ -44,67 +47,9 @@ impl App {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event<()>, target: &EventLoopWindowTarget<()>) {
-        match event {
-            Event::WindowEvent { event, .. } => {
-                let egui_consumed = self.gfx.on_window_event(&event);
-
-                match event {
-                    WindowEvent::CloseRequested => target.exit(),
-                    WindowEvent::RedrawRequested => self.render(),
-                    WindowEvent::Resized(size) => {
-                        self.gfx.resize(size.width, size.height);
-                    }
-                    WindowEvent::CursorMoved { position, .. } => {
-                        let new_pos = Point::new(position.x as f32, position.y as f32);
-
-                        if let Some(start) = self.drag_start {
-                            let delta = start - new_pos;
-                            self.camera.pan(delta);
-                            self.drag_start = Some(new_pos);
-                        }
-
-                        self.cursor_pos = new_pos;
-                    }
-                    WindowEvent::MouseInput { state, button, .. } if !egui_consumed => {
-                        self.ui.on_mouse_input(state, button);
-                        match (button, state) {
-                            (MouseButton::Middle, ElementState::Pressed) => {
-                                self.drag_start = Some(self.cursor_pos);
-                            }
-                            (MouseButton::Middle, ElementState::Released) => {
-                                self.drag_start = None;
-                            }
-                            _ => {}
-                        }
-                    }
-                    WindowEvent::MouseWheel { delta, .. } if !egui_consumed => {
-                        let scroll = match delta {
-                            MouseScrollDelta::LineDelta(_, y) => y,
-                            MouseScrollDelta::PixelDelta(pos) => pos.y as f32 / 120.0,
-                        };
-                        let factor = 1.1_f32.powf(scroll);
-                        self.camera
-                            .zoom_at(self.cursor_pos, factor, self.screen_size());
-                    }
-                    WindowEvent::KeyboardInput { event, .. } if !egui_consumed => {
-                        self.ui.on_keyboard_input(&event);
-                    }
-                    _ => {}
-                }
-            }
-            Event::AboutToWait => {
-                self.update();
-                self.gfx.request_redraw();
-            }
-            _ => {}
-        }
-    }
-
-    fn update(&mut self) {}
-
     fn render(&mut self) {
         let screen_size = self.screen_size();
+        let Some(gfx) = &mut self.gfx else { return };
 
         if let Some(sim) = &self.simulation {
             let rect = self.camera.visible_rect(screen_size);
@@ -112,7 +57,7 @@ impl App {
         }
 
         let ui_start = Instant::now();
-        self.gfx.prepare_ui(|ctx| {
+        gfx.prepare_ui(|ctx| {
             let app_ctx = AppContext {
                 simulation: self.simulation.as_deref(),
                 sim_snapshot: self.sim_snapshot.as_ref(),
@@ -133,8 +78,7 @@ impl App {
             let frame_rect = frame.visible_rect();
             let frame_size = frame.size();
 
-            self.gfx
-                .resize_cell_buffer(frame_size.width, frame_size.height);
+            gfx.resize_cell_buffer(frame_size.width, frame_size.height);
 
             let cells_wide = frame_size.width as f32;
             let cells_high = frame_size.height as f32;
@@ -143,28 +87,105 @@ impl App {
             let fract_y = frame_rect.min.y.rem_euclid(1.0);
 
             let uv_offset = [fract_x / cells_wide, fract_y / cells_high];
-
             let uv_scale = [
                 frame_rect.width() / cells_wide,
                 frame_rect.height() / cells_high,
             ];
 
-            self.gfx.set_camera(uv_offset, uv_scale);
+            gfx.set_camera(uv_offset, uv_scale);
 
-            let dest = self.gfx.cell_buffer_mut();
+            let dest = gfx.cell_buffer_mut();
             frame.write_rgba(dest);
 
             self.sim_snapshot = Some(frame.snapshot.clone());
         } else {
-            self.gfx.cell_buffer_mut().fill(0);
+            gfx.cell_buffer_mut().fill(0);
         }
 
-        self.gfx.render();
+        gfx.render();
         self.avg_gfx_secs.update(gfx_start.elapsed().as_secs_f64());
     }
 
     fn screen_size(&self) -> Size<u32> {
-        let s = self.gfx.window().inner_size();
-        Size::new(s.width, s.height)
+        self.window
+            .as_ref()
+            .map(|w| {
+                let s = w.inner_size();
+                Size::new(s.width, s.height)
+            })
+            .unwrap_or_default()
+    }
+}
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window_attrs = Window::default_attributes().with_title("Pixel Space Sim");
+
+        let window = Arc::new(event_loop.create_window(window_attrs).unwrap());
+        let gfx = Gfx::new(window.clone());
+
+        self.window = Some(window);
+        self.gfx = Some(gfx);
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        let Some(gfx) = &mut self.gfx else { return };
+
+        let egui_consumed = gfx.on_window_event(&event);
+
+        match event {
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::RedrawRequested => self.render(),
+            WindowEvent::Resized(size) => {
+                gfx.resize(size.width, size.height);
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                let new_pos = Point::new(position.x as f32, position.y as f32);
+
+                if let Some(start) = self.drag_start {
+                    let delta = start - new_pos;
+                    self.camera.pan(delta);
+                    self.drag_start = Some(new_pos);
+                }
+
+                self.cursor_pos = new_pos;
+            }
+            WindowEvent::MouseInput { state, button, .. } if !egui_consumed => {
+                self.ui.on_mouse_input(state, button);
+                match (button, state) {
+                    (MouseButton::Middle, ElementState::Pressed) => {
+                        self.drag_start = Some(self.cursor_pos);
+                    }
+                    (MouseButton::Middle, ElementState::Released) => {
+                        self.drag_start = None;
+                    }
+                    _ => {}
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. } if !egui_consumed => {
+                let scroll = match delta {
+                    MouseScrollDelta::LineDelta(_, y) => y,
+                    MouseScrollDelta::PixelDelta(pos) => pos.y as f32 / 120.0,
+                };
+                let factor = 1.1_f32.powf(scroll);
+                self.camera
+                    .zoom_at(self.cursor_pos, factor, self.screen_size());
+            }
+            WindowEvent::KeyboardInput { event, .. } if !egui_consumed => {
+                self.ui.on_keyboard_input(&event);
+            }
+            _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
     }
 }

@@ -1,6 +1,5 @@
-use std::sync::Arc;
+use std::error::Error;
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
 
 mod app;
 mod camera;
@@ -9,20 +8,12 @@ mod ui;
 
 pub use egui_phosphor::regular as icons;
 
-fn main() {
-    let event_loop = EventLoop::new().unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let window = Arc::new(
-        WindowBuilder::new()
-            .with_title("Pixel Space Sim")
-            .build(&event_loop)
-            .unwrap(),
-    );
+    let mut app = app::App::new();
 
-    let mut app = app::App::new(window.clone());
-
-    event_loop
-        .run(move |event, target| app.handle_event(event, target))
-        .unwrap();
+    event_loop.run_app(&mut app)?;
+    Ok(())
 }

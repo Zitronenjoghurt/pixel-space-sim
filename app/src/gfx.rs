@@ -1,5 +1,5 @@
 use egui::FontDefinitions;
-use egui_wgpu::{wgpu, ScreenDescriptor};
+use egui_wgpu::{wgpu, RendererOptions, ScreenDescriptor};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
@@ -40,7 +40,7 @@ impl Gfx {
         let size = window.inner_size();
         let scale_factor = window.scale_factor() as f32;
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
@@ -54,14 +54,12 @@ impl Gfx {
         }))
         .expect("Failed to find adapter");
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::default(),
-            },
-            None,
-        ))
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("Device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            ..Default::default()
+        }))
         .expect("Failed to create device");
 
         let surface_caps = surface.get_capabilities(&adapter);
@@ -162,12 +160,14 @@ impl Gfx {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
                 buffers: &[],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: surface_format,
                     blend: None,
@@ -181,6 +181,7 @@ impl Gfx {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
         let egui_ctx = egui::Context::default();
@@ -192,7 +193,9 @@ impl Gfx {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             "phosphor".into(),
-            egui::FontData::from_static(egui_phosphor::Variant::Regular.font_bytes()),
+            Arc::from(egui::FontData::from_static(
+                egui_phosphor::Variant::Regular.font_bytes(),
+            )),
         );
         if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
             font_keys.insert(1, "phosphor".into());
@@ -205,10 +208,20 @@ impl Gfx {
             egui::ViewportId::ROOT,
             &window,
             None,
+            None,
             Some(max_tex),
         );
 
-        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
+        let egui_renderer = egui_wgpu::Renderer::new(
+            &device,
+            surface_format,
+            RendererOptions {
+                msaa_samples: 1,
+                depth_stencil_format: None,
+                dithering: false,
+                predictable_texture_filtering: false,
+            },
+        );
 
         Self {
             window,
@@ -292,7 +305,7 @@ impl Gfx {
             .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
-    pub fn prepare_ui(&mut self, ui_fn: impl FnOnce(&egui::Context)) {
+    pub fn prepare_ui(&mut self, ui_fn: impl FnMut(&egui::Context)) {
         let input = self.egui_state.take_egui_input(&self.window);
         let output = self.egui_ctx.run(input, ui_fn);
 
@@ -308,14 +321,14 @@ impl Gfx {
 
     pub fn render(&mut self) {
         self.queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.cell_texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
             &self.cell_buffer,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * self.cell_size[0]),
                 rows_per_image: Some(self.cell_size[1]),
@@ -343,6 +356,7 @@ impl Gfx {
                 label: Some("Cell Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -361,6 +375,7 @@ impl Gfx {
             self.egui_renderer
                 .update_texture(&self.device, &self.queue, *id, delta);
         }
+
         self.egui_renderer.update_buffers(
             &self.device,
             &self.queue,
@@ -370,10 +385,11 @@ impl Gfx {
         );
 
         {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("egui"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -382,8 +398,11 @@ impl Gfx {
                 })],
                 ..Default::default()
             });
+
+            let mut rpass_static = rpass.forget_lifetime();
+
             self.egui_renderer
-                .render(&mut rpass, &self.paint_jobs, &self.screen);
+                .render(&mut rpass_static, &self.paint_jobs, &self.screen);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
