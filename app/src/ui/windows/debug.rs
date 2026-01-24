@@ -41,22 +41,30 @@ impl UiWindow for DebugWindow<'_> {
             .num_columns(2)
             .striped(true)
             .show(ui, |ui| {
+                ui.label("Main Thread GFX Time");
+                ui.label(format!("{:.2}ms", self.app_ctx.avg_gfx_secs.get() * 1000.0));
+                ui.end_row();
+
+                ui.label("Main Thread UI Time");
+                ui.label(format!("{:.2}ms", self.app_ctx.avg_ui_secs.get() * 1000.0));
+                ui.end_row();
+
                 if let Some(snapshot) = self.app_ctx.sim_snapshot {
-                    ui.label("Single Frame Time (CPU)");
+                    ui.label("Sim Frame Time");
                     ui.label(format!(
                         "{:.2}ms",
                         snapshot.avg_frame.as_secs_f32() * 1000.0
                     ));
                     ui.end_row();
 
-                    ui.label("Frame Time Budget (CPU)");
+                    ui.label("Sim Frame Time Budget");
                     ui.label(format!(
                         "{:.2}%",
                         snapshot.frame_time_per_second().as_secs_f32() * 100.0
                     ));
                     ui.end_row();
 
-                    ui.label("Tick Time");
+                    ui.label("Sim Tick Time");
                     ui.label(format!("{:.2}ms", snapshot.avg_tick.as_secs_f32() * 1000.0));
                     ui.end_row();
 

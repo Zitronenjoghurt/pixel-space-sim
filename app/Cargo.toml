@@ -5,13 +5,13 @@ edition = "2024"
 
 [dependencies]
 pss-core = { workspace = true }
+bytemuck = "1.24.0"
 egui = "0.26"
 egui-phosphor = "0.11.0"
 egui-wgpu = "0.26"
 egui-winit = "0.26"
+pollster = "0.4.0"
 strum = { workspace = true }
 strum_macros = { workspace = true }
 wgpu = { version = "0.19", default-features = false, features = ["dx12", "metal"] }
 winit = "0.29"
-bytemuck = "1.24.0"
-pollster = "0.4.0"

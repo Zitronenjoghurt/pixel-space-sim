@@ -274,6 +274,10 @@ impl Gfx {
         &mut self.cell_buffer
     }
 
+    pub fn get_scale_factor(&self) -> f32 {
+        self.screen.pixels_per_point
+    }
+
     pub fn set_scale_factor(&mut self, scale_factor: f32) {
         self.screen.pixels_per_point = scale_factor;
         self.egui_ctx.set_pixels_per_point(scale_factor);

@@ -1,6 +1,7 @@
 use crate::camera::Camera;
 use crate::ui::windows::main::{MainWindow, MainWindowState};
 use crate::ui::windows::UiWindow;
+use pss_core::math::ema::EMA;
 use pss_core::math::point::Point;
 use pss_core::math::size::Size;
 use pss_core::simulation::source::SimSource;
@@ -17,6 +18,8 @@ pub struct AppContext<'a> {
     pub camera: &'a Camera,
     pub cursor_screen_pos: Point<f32>,
     pub screen_size: Size<u32>,
+    pub avg_gfx_secs: EMA,
+    pub avg_ui_secs: EMA,
 }
 
 impl AppContext<'_> {

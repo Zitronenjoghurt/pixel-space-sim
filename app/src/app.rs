@@ -1,6 +1,7 @@
 use crate::camera::Camera;
 use crate::gfx::Gfx;
 use crate::ui::{AppContext, Ui};
+use pss_core::math::ema::EMA;
 use pss_core::math::point::Point;
 use pss_core::math::size::Size;
 use pss_core::simulation::source::local::LocalSim;
@@ -9,6 +10,7 @@ use pss_core::simulation::state::SimState;
 use pss_core::simulation::sync::command::SimCommand;
 use pss_core::simulation::sync::snapshot::SimSnapshot;
 use std::sync::Arc;
+use std::time::Instant;
 use winit::event::{ElementState, Event, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
@@ -21,6 +23,8 @@ pub struct App {
     sim_snapshot: Option<SimSnapshot>,
     cursor_pos: Point<f32>,
     drag_start: Option<Point<f32>>,
+    avg_gfx_secs: EMA,
+    avg_ui_secs: EMA,
 }
 
 impl App {
@@ -35,6 +39,8 @@ impl App {
             sim_snapshot: None,
             cursor_pos: Point::default(),
             drag_start: None,
+            avg_gfx_secs: EMA::default(),
+            avg_ui_secs: EMA::default(),
         }
     }
 
@@ -105,6 +111,7 @@ impl App {
             sim.send_command(SimCommand::SetVisibleRect(rect));
         }
 
+        let ui_start = Instant::now();
         self.gfx.prepare_ui(|ctx| {
             let app_ctx = AppContext {
                 simulation: self.simulation.as_deref(),
@@ -112,10 +119,14 @@ impl App {
                 camera: &self.camera,
                 cursor_screen_pos: self.cursor_pos,
                 screen_size,
+                avg_gfx_secs: self.avg_gfx_secs,
+                avg_ui_secs: self.avg_ui_secs,
             };
             self.ui.draw(ctx, &app_ctx);
         });
+        self.avg_ui_secs.update(ui_start.elapsed().as_secs_f64());
 
+        let gfx_start = Instant::now();
         if let Some(sim) = &mut self.simulation {
             let frame = sim.read_frame();
 
@@ -149,6 +160,7 @@ impl App {
         }
 
         self.gfx.render();
+        self.avg_gfx_secs.update(gfx_start.elapsed().as_secs_f64());
     }
 
     fn screen_size(&self) -> Size<u32> {
