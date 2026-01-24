@@ -1,8 +1,11 @@
 use crate::math::point::Point;
 use crate::simulation::procedural::hash::{ProcHash, ProcHashDomain};
+use crate::simulation::state::colony::Colony;
 use std::collections::{HashMap, HashSet};
 
+pub mod colony;
 pub mod resource;
+mod resource_bag;
 pub mod settings;
 
 #[derive(Debug, Clone)]
@@ -11,6 +14,7 @@ pub struct SimState {
     pub settings: settings::SimulationSettings,
     pub discovered_asteroids: HashMap<Point<i64>, f32>,
     pub depleted_asteroids: HashSet<Point<i64>>,
+    pub colonies: HashMap<Point<i64>, Colony>,
 }
 
 impl SimState {
@@ -20,6 +24,7 @@ impl SimState {
             settings,
             discovered_asteroids: Default::default(),
             depleted_asteroids: Default::default(),
+            colonies: Default::default(),
         }
     }
 
@@ -98,5 +103,9 @@ impl SimState {
 
     pub fn asteroid_shape_seed(&self, point: Point<i64>) -> u64 {
         ProcHash::from_point_i64(self.seed, point, ProcHashDomain::AsteroidShape).raw()
+    }
+
+    pub fn colony_at(&self, point: Point<i64>) -> Option<&Colony> {
+        self.colonies.get(&point)
     }
 }

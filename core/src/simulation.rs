@@ -1,9 +1,10 @@
 use crate::math::area::Area;
 use crate::math::point::Point;
 use crate::math::rect::Rect;
+use crate::math::rgba::RGBA;
 use crate::math::size::Size;
 use crate::simulation::frame::SimFrame;
-use crate::simulation::procedural::asteroid_shape::asteroid_shape_eclipse_radii;
+use crate::simulation::procedural::asteroid_shape::asteroid_shape_eclipse;
 use crate::simulation::state::SimState;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
@@ -30,6 +31,7 @@ pub struct Simulation {
     paused: bool,
     debounce_visible: Option<Instant>,
     visible_asteroids: HashSet<Point<i64>>,
+    visible_colonies: HashSet<Point<i64>>,
 }
 
 impl Simulation {
@@ -44,6 +46,7 @@ impl Simulation {
             paused: false,
             debounce_visible: None,
             visible_asteroids: Default::default(),
+            visible_colonies: Default::default(),
         }
     }
 
@@ -72,8 +75,16 @@ impl Simulation {
                 continue;
             };
             let shape_seed = self.state.asteroid_shape_seed(*point);
-            let (rx, ry) = asteroid_shape_eclipse_radii(shape_seed, scale);
-            frame.fill_ellipse(point.to_f32(), rx, ry, resource_type.into());
+            let eclipse = asteroid_shape_eclipse(shape_seed, point.to_f32(), scale);
+            frame.fill_ellipse(eclipse, resource_type.into());
+        }
+
+        for point in self.visible_colonies.iter() {
+            let Some(_colony) = self.state.colony_at(*point) else {
+                continue;
+            };
+            let rect = Rect::new_square(point.to_f32(), 10.0);
+            frame.fill_rect(rect, RGBA::rgb(70, 70, 70));
         }
 
         self.update_snapshot(&mut frame.snapshot);
@@ -103,6 +114,14 @@ impl Simulation {
                 self.visible_asteroids.insert(*point);
             }
         });
+
+        self.visible_colonies.clear();
+        self.state.colonies.keys().for_each(|point| {
+            if self.visible_rect.contains(point.to_f32()) {
+                self.visible_colonies.insert(*point);
+            }
+        });
+
         self.debounce_visible = None;
     }
 

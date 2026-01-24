@@ -1,3 +1,4 @@
+use crate::math::eclipse::Eclipse;
 use crate::math::point::Point;
 use crate::math::rect::Rect;
 use crate::math::rgba::RGBA;
@@ -65,43 +66,40 @@ impl SimFrame {
         }
     }
 
-    pub fn fill_ellipse(&mut self, center: Point<f32>, rx: f32, ry: f32, color: RGBA) {
-        let width = self.size.width as i32;
-        let height = self.size.height as i32;
+    pub fn fill_ellipse(&mut self, eclipse: Eclipse<f32>, color: RGBA) {
+        let width = self.size.width as i64;
+        let height = self.size.height as i64;
 
-        let origin_x = self.visible_rect.min.x.floor() as i32;
-        let origin_y = self.visible_rect.min.y.floor() as i32;
+        let origin_x = self.visible_rect.min.x.floor() as i64;
+        let origin_y = self.visible_rect.min.y.floor() as i64;
 
-        let min_x = ((center.x - rx).floor() as i32 - origin_x).max(0);
-        let max_x = ((center.x + rx).ceil() as i32 - origin_x).min(width - 1);
-        let min_y = ((center.y - ry).floor() as i32 - origin_y).max(0);
-        let max_y = ((center.y + ry).ceil() as i32 - origin_y).min(height - 1);
+        for world_point in eclipse.to_i64().iter() {
+            let buf_x = world_point.x - origin_x;
+            let buf_y = world_point.y - origin_y;
 
-        if min_x > max_x || min_y > max_y {
-            return;
-        }
-
-        let cx = center.x - origin_x as f32;
-        let cy = center.y - origin_y as f32;
-        let inv_rx_sq = 1.0 / (rx * rx);
-        let inv_ry_sq = 1.0 / (ry * ry);
-
-        for y in min_y..=max_y {
-            let dy = y as f32 + 0.5 - cy;
-            let dy_term = dy * dy * inv_ry_sq;
-
-            if dy_term > 1.0 {
-                continue;
+            if buf_x >= 0 && buf_x < width && buf_y >= 0 && buf_y < height {
+                let idx = ((buf_y * width + buf_x) * 4) as usize;
+                self.rgba[idx..idx + 4].copy_from_slice(&color);
             }
+        }
+    }
 
-            let row_start = (y * width) as usize * 4;
+    pub fn fill_rect(&mut self, rect: Rect<f32>, color: RGBA) {
+        if let Some(visible_part) = self.visible_rect.intersect(&rect) {
+            let origin_x = self.visible_rect.min.x.floor() as i64;
+            let origin_y = self.visible_rect.min.y.floor() as i64;
+            let width = self.size.width as i64;
 
-            for x in min_x..=max_x {
-                let dx = x as f32 + 0.5 - cx;
+            let draw_rect = visible_part.to_i64();
+            for world_point in draw_rect.iter() {
+                let buf_x = world_point.x - origin_x;
+                let buf_y = world_point.y - origin_y;
 
-                if dx * dx * inv_rx_sq + dy_term <= 1.0 {
-                    let idx = row_start + (x as usize * 4);
-                    self.rgba[idx..idx + 4].copy_from_slice(&color);
+                if buf_x >= 0 && buf_x < width {
+                    let idx = ((buf_y * width + buf_x) * 4) as usize;
+                    if idx + 4 <= self.rgba.len() {
+                        self.rgba[idx..idx + 4].copy_from_slice(&color);
+                    }
                 }
             }
         }

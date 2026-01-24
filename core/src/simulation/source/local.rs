@@ -1,7 +1,9 @@
 use crate::math::ema::EMA;
+use crate::math::point::Point;
 use crate::simulation::frame::SimFrame;
 use crate::simulation::source::local::context::LocalSimContext;
 use crate::simulation::source::SimSource;
+use crate::simulation::state::colony::Colony;
 use crate::simulation::state::SimState;
 use crate::simulation::sync::command::SimCommand;
 use crate::simulation::sync::event::SimEvent;
@@ -25,8 +27,12 @@ impl LocalSim {
         let (frame_writer, frame_reader) = TripleBuffer::new(&SimFrame::default()).split();
 
         let thread = std::thread::spawn(move || {
+            let mut sim = Simulation::new(state);
+            sim.state
+                .colonies
+                .insert(Point::new(1000, 700), Colony::default());
             let context = LocalSimContext {
-                simulation: Simulation::new(state),
+                simulation: sim,
                 command_rx,
                 event_tx,
                 frame_writer,

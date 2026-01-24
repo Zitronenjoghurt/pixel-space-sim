@@ -1,6 +1,6 @@
 use crate::math::rgba::RGBA;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum ResourceType {
     Ice,
     Iron,
